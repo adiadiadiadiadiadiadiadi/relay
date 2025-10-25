@@ -1,3 +1,6 @@
+const axios = require('axios');
+require('dotenv').config();
+
 const TRUSTLESS_WORK_API_URL = 'https://api.trustlesswork.com';
 const API_KEY = process.env.TRUSTLESS_KEY;
 
