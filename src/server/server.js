@@ -6,7 +6,7 @@ import dotenv from "dotenv";
 import crypto from "crypto";
 
 // Load environment variables
-dotenv.config();
+dotenv.config({ path: '../../.env' });
 
 const app = express();
 
