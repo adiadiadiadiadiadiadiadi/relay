@@ -1,19 +1,11 @@
 import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
+import Header from '../components/Header';
 
 const Home: React.FC = () => {
-  const { currentUser, logout } = useAuth();
+  const { currentUser } = useAuth();
   const navigate = useNavigate();
-
-  const handleLogout = async () => {
-    try {
-      await logout();
-      navigate('/');
-    } catch (error) {
-      console.error('Failed to log out', error);
-    }
-  };
 
   // Mock freelancer services data
   const services = [
@@ -79,52 +71,7 @@ const Home: React.FC = () => {
       backgroundColor: '#0a0a0a',
       fontFamily: '"Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif'
     }}>
-      {/* Header */}
-      <header style={{
-        backgroundColor: '#111111',
-        borderBottom: '1px solid #333333',
-        padding: '1rem 2rem',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-      }}>
-        <h1 style={{ color: '#ffffff', fontSize: '1.5rem', fontWeight: '800', margin: 0 }}>
-          stellar marketplace
-        </h1>
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          {currentUser ? (
-            <>
-              <span style={{ color: '#cccccc', fontSize: '14px' }}>
-                {currentUser.email}
-              </span>
-              <button
-                onClick={handleLogout}
-                style={{
-                  backgroundColor: '#4c1d95',
-                  color: 'white',
-                  border: 'none',
-                  padding: '8px 16px',
-                  borderRadius: '2px',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  fontWeight: '600'
-                }}
-              >
-                logout
-              </button>
-            </>
-          ) : (
-            <div style={{ display: 'flex', gap: '1rem' }}>
-              <Link to="/login" style={{ color: '#4c1d95', textDecoration: 'none', fontWeight: '600' }}>
-                log in
-              </Link>
-              <Link to="/signup" style={{ color: '#4c1d95', textDecoration: 'none', fontWeight: '600' }}>
-                sign up
-              </Link>
-            </div>
-          )}
-        </div>
-      </header>
+      <Header />
 
       {/* Hero Section */}
       <section style={{
@@ -142,29 +89,34 @@ const Home: React.FC = () => {
           connect with top freelancers and pay with stablecoins
         </p>
         <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-          <button style={{
-            backgroundColor: '#4c1d95',
-            color: 'white',
-            border: 'none',
-            padding: '12px 24px',
-            borderRadius: '2px',
-            cursor: 'pointer',
-            fontSize: '16px',
-            fontWeight: '600'
-          }}>
-            browse services
-          </button>
-          <button style={{
-            backgroundColor: 'transparent',
-            color: '#4c1d95',
-            border: '2px solid #4c1d95',
-            padding: '10px 24px',
-            borderRadius: '2px',
-            cursor: 'pointer',
-            fontSize: '16px',
-            fontWeight: '600'
-          }}>
-            become a freelancer
+          <Link to="/services" style={{ textDecoration: 'none' }}>
+            <button style={{
+              backgroundColor: '#4c1d95',
+              color: 'white',
+              border: 'none',
+              padding: '12px 24px',
+              borderRadius: '2px',
+              cursor: 'pointer',
+              fontSize: '16px',
+              fontWeight: '600'
+            }}>
+              browse services
+            </button>
+          </Link>
+          <button 
+            onClick={() => currentUser ? navigate('/post-job') : navigate('/login')}
+            style={{
+              backgroundColor: 'transparent',
+              color: '#4c1d95',
+              border: '2px solid #4c1d95',
+              padding: '10px 24px',
+              borderRadius: '2px',
+              cursor: 'pointer',
+              fontSize: '16px',
+              fontWeight: '600'
+            }}
+          >
+            post a job
           </button>
         </div>
       </section>

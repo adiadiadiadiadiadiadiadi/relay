@@ -4,6 +4,9 @@ import { AuthProvider } from './contexts/AuthContext';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import SignUp from './pages/SignUp';
+import Services from './pages/Services';
+import PostJob from './pages/PostJob';
+import EmployerDashboard from './pages/EmployerDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 import './App.css';
 
@@ -16,6 +19,9 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<SignUp />} />
+            <Route path="/services" element={<Services />} />
+            <Route path="/post-job" element={<PostJob />} />
+            <Route path="/employer/:userId" element={<EmployerDashboard />} />
             <Route path="/home" element={<Home />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
