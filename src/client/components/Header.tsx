@@ -54,7 +54,7 @@ const Header: React.FC = () => {
 
   const handleViewProfile = () => {
     setShowUserDropdown(false);
-    navigate('/profile');
+    navigate(`/employer/${currentUser?.id}`);
   };
 
   const handleUserDropdownToggle = () => {
@@ -79,6 +79,30 @@ const Header: React.FC = () => {
       <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
         {currentUser ? (
           <>
+            {/* Messages Button */}
+            <button
+              onClick={() => navigate('/messages')}
+              style={{
+                backgroundColor: 'transparent',
+                border: 'none',
+                color: '#cccccc',
+                padding: '8px',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '36px',
+                height: '36px'
+              }}
+              title="Messages"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+            </button>
+            
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
               <div ref={userDropdownRef} style={{ position: 'relative' }}>
                 <button

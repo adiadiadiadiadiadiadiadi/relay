@@ -52,7 +52,20 @@ const JobDetails: React.FC = () => {
 
   const handleMessageSeller = () => {
     setShowConfirmation(false);
-    navigate('/messages');
+    if (job) {
+      // Navigate to messages with job poster info to start new conversation
+      navigate('/messages', { 
+        state: { 
+          startConversationWith: {
+            name: job.employer_name || 'Job Poster',
+            email: `${job.employer_id}@example.com`, // Using employer_id as fallback
+            jobTitle: job.title
+          }
+        } 
+      });
+    } else {
+      navigate('/messages');
+    }
   };
 
   const handleCloseConfirmation = () => {

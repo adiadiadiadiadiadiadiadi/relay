@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 interface ConfirmationAlertProps {
   isOpen: boolean;
@@ -15,7 +15,30 @@ const ConfirmationAlert: React.FC<ConfirmationAlertProps> = ({
   jobTitle,
   jobPrice
 }) => {
+  const [step, setStep] = useState<'confirm' | 'success'>('confirm');
+
+  // Reset to confirm step when modal opens
+  React.useEffect(() => {
+    if (isOpen) {
+      setStep('confirm');
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
+
+  const handleConfirm = () => {
+    setStep('success');
+  };
+
+  const handleMessageSeller = () => {
+    setStep('confirm');
+    onMessageSeller();
+  };
+
+  const handleClose = () => {
+    setStep('confirm');
+    onClose();
+  };
 
   return (
     <div style={{
@@ -41,7 +64,7 @@ const ConfirmationAlert: React.FC<ConfirmationAlertProps> = ({
       }}>
         {/* Close button */}
         <button
-          onClick={onClose}
+          onClick={handleClose}
           style={{
             position: 'absolute',
             top: '1rem',
@@ -60,53 +83,107 @@ const ConfirmationAlert: React.FC<ConfirmationAlertProps> = ({
 
         {/* Content */}
         <div style={{ marginBottom: '2rem' }}>
-          <h2 style={{
-            color: '#ffffff',
-            fontSize: '1.5rem',
-            fontWeight: '700',
-            marginBottom: '1rem'
-          }}>
-            claim confirmation
-          </h2>
-          <p style={{
-            color: '#cccccc',
-            fontSize: '16px',
-            marginBottom: '1rem',
-            lineHeight: 1.5
-          }}>
-            you are about to claim this job:
-          </p>
-          <div style={{
-            backgroundColor: '#1a1a1a',
-            border: '1px solid #333333',
-            borderRadius: '4px',
-            padding: '1rem',
-            marginBottom: '1.5rem'
-          }}>
-            <h3 style={{
-              color: '#ffffff',
-              fontSize: '1.1rem',
-              fontWeight: '600',
-              marginBottom: '0.5rem'
-            }}>
-              {jobTitle}
-            </h3>
-            <p style={{
-              color: '#4c1d95',
-              fontSize: '1.2rem',
-              fontWeight: '700',
-              margin: 0
-            }}>
-              {jobPrice}
-            </p>
-          </div>
-          <p style={{
-            color: '#cccccc',
-            fontSize: '14px',
-            marginBottom: '1.5rem'
-          }}>
-            once claimed, you will be able to start working on this project and communicate with the employer.
-          </p>
+          {step === 'confirm' ? (
+            <>
+              <h2 style={{
+                color: '#ffffff',
+                fontSize: '1.5rem',
+                fontWeight: '700',
+                marginBottom: '1rem'
+              }}>
+                are you sure you want to claim this job?
+              </h2>
+              <p style={{
+                color: '#cccccc',
+                fontSize: '16px',
+                marginBottom: '1rem',
+                lineHeight: 1.5
+              }}>
+                you are about to claim this job:
+              </p>
+              <div style={{
+                backgroundColor: '#1a1a1a',
+                border: '1px solid #333333',
+                borderRadius: '4px',
+                padding: '1rem',
+                marginBottom: '1.5rem'
+              }}>
+                <h3 style={{
+                  color: '#ffffff',
+                  fontSize: '1.1rem',
+                  fontWeight: '600',
+                  marginBottom: '0.5rem'
+                }}>
+                  {jobTitle}
+                </h3>
+                <p style={{
+                  color: '#4c1d95',
+                  fontSize: '1.2rem',
+                  fontWeight: '700',
+                  margin: 0
+                }}>
+                  {jobPrice}
+                </p>
+              </div>
+              <p style={{
+                color: '#cccccc',
+                fontSize: '14px',
+                marginBottom: '1.5rem'
+              }}>
+                once claimed, you will be able to start working on this project and communicate with the employer.
+              </p>
+            </>
+          ) : (
+            <>
+              <h2 style={{
+                color: '#16a34a',
+                fontSize: '1.5rem',
+                fontWeight: '700',
+                marginBottom: '1rem'
+              }}>
+                claimed successfully!
+              </h2>
+              <p style={{
+                color: '#cccccc',
+                fontSize: '16px',
+                marginBottom: '1rem',
+                lineHeight: 1.5
+              }}>
+                you have successfully claimed this job:
+              </p>
+              <div style={{
+                backgroundColor: '#1a1a1a',
+                border: '1px solid #333333',
+                borderRadius: '4px',
+                padding: '1rem',
+                marginBottom: '1.5rem'
+              }}>
+                <h3 style={{
+                  color: '#ffffff',
+                  fontSize: '1.1rem',
+                  fontWeight: '600',
+                  marginBottom: '0.5rem'
+                }}>
+                  {jobTitle}
+                </h3>
+                <p style={{
+                  color: '#4c1d95',
+                  fontSize: '1.2rem',
+                  fontWeight: '700',
+                  margin: 0
+                }}>
+                  {jobPrice}
+                </p>
+              </div>
+              <p style={{
+                color: '#cccccc',
+                fontSize: '14px',
+                marginBottom: '1.5rem'
+              }}>
+                you can now start working on this project and communicate with the employer.
+              </p>
+            </>
+          )}
         </div>
 
         {/* Action buttons */}
@@ -115,36 +192,73 @@ const ConfirmationAlert: React.FC<ConfirmationAlertProps> = ({
           gap: '1rem',
           justifyContent: 'flex-end'
         }}>
-          <button
-            onClick={onClose}
-            style={{
-              backgroundColor: 'transparent',
-              color: '#888888',
-              border: '1px solid #333333',
-              padding: '12px 24px',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: '600'
-            }}
-          >
-            cancel
-          </button>
-          <button
-            onClick={onMessageSeller}
-            style={{
-              backgroundColor: '#4c1d95',
-              color: 'white',
-              border: 'none',
-              padding: '12px 24px',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: '600'
-            }}
-          >
-            message seller
-          </button>
+          {step === 'confirm' ? (
+            <>
+              <button
+                onClick={handleClose}
+                style={{
+                  backgroundColor: 'transparent',
+                  color: '#888888',
+                  border: '1px solid #333333',
+                  padding: '12px 24px',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '600'
+                }}
+              >
+                cancel
+              </button>
+              <button
+                onClick={handleConfirm}
+                style={{
+                  backgroundColor: '#4c1d95',
+                  color: 'white',
+                  border: 'none',
+                  padding: '12px 24px',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '600'
+                }}
+              >
+                yes, claim it
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={handleClose}
+                style={{
+                  backgroundColor: 'transparent',
+                  color: '#888888',
+                  border: '1px solid #333333',
+                  padding: '12px 24px',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '600'
+                }}
+              >
+                close
+              </button>
+              <button
+                onClick={handleMessageSeller}
+                style={{
+                  backgroundColor: '#4c1d95',
+                  color: 'white',
+                  border: 'none',
+                  padding: '12px 24px',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '600'
+                }}
+              >
+                message seller
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>

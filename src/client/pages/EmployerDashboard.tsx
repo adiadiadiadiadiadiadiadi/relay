@@ -4,6 +4,7 @@ import { useCurrency } from '../contexts/CurrencyContext';
 import { convertAndFormatCurrency, Currency } from '../utils/currencyConversion';
 import { useNavigate, Link, useParams } from 'react-router-dom';
 import Header from '../components/Header';
+import ConfirmationAlert from '../components/ConfirmationAlert';
 
 interface Job {
   id: string;
@@ -14,6 +15,8 @@ interface Job {
   tags: string[];
   status: string;
   created_at: string;
+  employer_name?: string;
+  employer_email?: string;
 }
 
 const EmployerDashboard: React.FC = () => {
@@ -24,6 +27,8 @@ const EmployerDashboard: React.FC = () => {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [showRatingDropdown, setShowRatingDropdown] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   
   // Hardcoded ratings
   const employerRating = 4.8;
@@ -61,27 +66,58 @@ const EmployerDashboard: React.FC = () => {
   const currentJobs = jobs.filter(job => job.status === 'in_progress' || job.status === 'submitted');
   const pastJobs = jobs.filter(job => job.status === 'completed' || job.status === 'cancelled');
 
+  const handleClaimClick = (job: Job, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setSelectedJob(job);
+    setShowConfirmation(true);
+  };
+
+  const handleMessageSeller = () => {
+    setShowConfirmation(false);
+    if (selectedJob) {
+      // Navigate to messages with job poster info to start new conversation
+      navigate('/messages', { 
+        state: { 
+          startConversationWith: {
+            name: selectedJob.employer_name || 'Job Poster',
+            email: selectedJob.employer_email || 'unknown@example.com',
+            jobTitle: selectedJob.title
+          }
+        } 
+      });
+    } else {
+      navigate('/messages');
+    }
+  };
+
+  const handleCloseConfirmation = () => {
+    setShowConfirmation(false);
+    setSelectedJob(null);
+  };
+
   const renderJobCard = (job: Job) => (
-    <Link key={job.id} to={`/job/${job.id}`} style={{ textDecoration: 'none' }}>
-      <div
-        style={{
-          backgroundColor: '#111111',
-          border: '1px solid #333333',
-          borderRadius: '4px',
-          padding: '1.25rem',
-          marginBottom: '1rem',
-          transition: 'transform 0.2s, box-shadow 0.2s',
-          cursor: 'pointer'
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.transform = 'translateY(-2px)';
-          e.currentTarget.style.boxShadow = '0 8px 24px rgba(76, 29, 149, 0.1)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.transform = 'translateY(0)';
-          e.currentTarget.style.boxShadow = 'none';
-        }}
-      >
+    <div key={job.id} style={{ position: 'relative' }}>
+      <Link to={`/job/${job.id}`} style={{ textDecoration: 'none' }}>
+        <div
+          style={{
+            backgroundColor: '#111111',
+            border: '1px solid #333333',
+            borderRadius: '4px',
+            padding: '1.25rem',
+            marginBottom: '1rem',
+            transition: 'transform 0.2s, box-shadow 0.2s',
+            cursor: 'pointer'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-2px)';
+            e.currentTarget.style.boxShadow = '0 8px 24px rgba(76, 29, 149, 0.1)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = 'none';
+          }}
+        >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '0.75rem' }}>
         <h3 style={{ color: '#ffffff', fontSize: '1.1rem', fontWeight: '600', margin: 0 }}>
           {job.title}
@@ -127,6 +163,37 @@ const EmployerDashboard: React.FC = () => {
       </div>
     </div>
     </Link>
+    
+    {/* Claim Button for Open Jobs */}
+    {job.status === 'open' && (
+      <button
+        onClick={(e) => handleClaimClick(job, e)}
+        style={{
+          position: 'absolute',
+          top: '1rem',
+          right: '1rem',
+          backgroundColor: '#4c1d95',
+          color: '#ffffff',
+          border: 'none',
+          borderRadius: '6px',
+          padding: '8px 16px',
+          fontSize: '12px',
+          fontWeight: '600',
+          cursor: 'pointer',
+          transition: 'background-color 0.2s',
+          zIndex: 10
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor = '#5b21b6';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = '#4c1d95';
+        }}
+      >
+        claim
+      </button>
+    )}
+    </div>
   );
 
   return (
@@ -137,11 +204,50 @@ const EmployerDashboard: React.FC = () => {
     }}>
       <Header />
 
-      {/* Profile Title */}
+      {/* Profile Header */}
       <div style={{ padding: '2rem 2rem 1rem 2rem', maxWidth: '1400px', margin: '0 auto' }}>
-        <h1 style={{ color: '#ffffff', fontSize: '2rem', fontWeight: '800', margin: 0, textTransform: 'lowercase' }}>
-          {currentUser?.name || currentUser?.email}'s profile
-        </h1>
+        <div style={{
+          backgroundColor: '#111111',
+          border: '1px solid #333333',
+          borderRadius: '8px',
+          padding: '2rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '1.5rem'
+        }}>
+          <div style={{
+            width: '80px',
+            height: '80px',
+            backgroundColor: '#4c1d95',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '2rem',
+            fontWeight: '700',
+            color: '#ffffff'
+          }}>
+            {currentUser?.email?.charAt(0).toUpperCase()}
+          </div>
+          <div>
+            <h1 style={{ 
+              color: '#ffffff', 
+              fontSize: '2rem', 
+              fontWeight: '800', 
+              margin: '0 0 0.5rem 0',
+              textTransform: 'lowercase'
+            }}>
+              {currentUser?.email?.split('@')[0]}
+            </h1>
+            <p style={{ 
+              color: '#888888', 
+              fontSize: '14px', 
+              margin: 0 
+            }}>
+              {currentUser?.email}
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Main Content */}
@@ -438,6 +544,17 @@ const EmployerDashboard: React.FC = () => {
           </div>
         </div>
       </section>
+      
+      {/* Confirmation Alert */}
+      {showConfirmation && selectedJob && (
+        <ConfirmationAlert
+          isOpen={showConfirmation}
+          onClose={handleCloseConfirmation}
+          onMessageSeller={handleMessageSeller}
+          jobTitle={selectedJob.title}
+          jobPrice={convertAndFormatCurrency(selectedJob.price, selectedJob.currency as Currency, userCurrency)}
+        />
+      )}
     </div>
   );
 };
