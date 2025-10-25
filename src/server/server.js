@@ -147,7 +147,7 @@ app.get("/api/users", async (req, res) => {
 
 // endpoint to create a job posting
 app.post("/api/jobs", async (req, res) => {
-  const { title, description, price, currency, tags, userId } = req.body;
+  const { title, description, price, currency, tags, userId, employerName } = req.body;
 
   // Validation
   if (!title || !description || !price || !currency || !tags || !userId) {
@@ -163,8 +163,8 @@ app.post("/api/jobs", async (req, res) => {
     
     // Insert job
     await db.execute(
-      "INSERT INTO jobs (id, employer_id, title, description, tags, price, currency, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'open')",
-      [jobId, userId, title, description, JSON.stringify(tags), price, currency]
+      "INSERT INTO jobs (id, employer_id, title, description, tags, price, currency, status, employer_name) VALUES (?, ?, ?, ?, ?, ?, ?, 'open', ?)",
+      [jobId, userId, title, description, JSON.stringify(tags), price, currency, employerName || null]
     );
 
     res.status(201).json({ 
@@ -175,6 +175,7 @@ app.post("/api/jobs", async (req, res) => {
       currency,
       tags,
       employerId: userId,
+      employerName: employerName || null,
       status: 'open',
       createdAt: new Date().toISOString()
     });

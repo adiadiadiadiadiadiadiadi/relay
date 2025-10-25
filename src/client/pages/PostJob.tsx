@@ -76,7 +76,8 @@ const PostJob: React.FC = () => {
           price: budget,
           currency,
           tags: selectedTags,
-          userId: currentUser.id
+          userId: currentUser.id,
+          employerName: currentUser.name || currentUser.email
         }),
       });
 

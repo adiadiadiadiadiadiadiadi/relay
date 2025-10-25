@@ -7,6 +7,8 @@ import SignUp from './pages/SignUp';
 import Services from './pages/Services';
 import PostJob from './pages/PostJob';
 import EmployerDashboard from './pages/EmployerDashboard';
+import JobDetails from './pages/JobDetails';
+import AddWallet from './pages/AddWallet';
 import ProtectedRoute from './components/ProtectedRoute';
 import './App.css';
 
@@ -21,7 +23,9 @@ function App() {
             <Route path="/signup" element={<SignUp />} />
             <Route path="/services" element={<Services />} />
             <Route path="/post-job" element={<PostJob />} />
+            <Route path="/job/:jobId" element={<JobDetails />} />
             <Route path="/employer/:userId" element={<EmployerDashboard />} />
+            <Route path="/add-wallet" element={<AddWallet />} />
             <Route path="/home" element={<Home />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

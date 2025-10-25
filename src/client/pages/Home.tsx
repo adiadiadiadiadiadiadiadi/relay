@@ -1,69 +1,52 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import Header from '../components/Header';
 
+interface Job {
+  id: string;
+  title: string;
+  description: string;
+  price: number;
+  currency: string;
+  tags: string[];
+  status: string;
+  created_at: string;
+  employer_id: string;
+  employer_name?: string;
+  escrow_id?: string;
+}
+
 const Home: React.FC = () => {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Mock freelancer services data
-  const services = [
-    {
-      id: 1,
-      title: "web development",
-      freelancer: "alex_codes",
-      price: "50 USDC",
-      rating: 4.9,
-      reviews: 127,
-      description: "full-stack web development with react, node.js, and modern frameworks"
-    },
-    {
-      id: 2,
-      title: "ui/ux design",
-      freelancer: "design_pro",
-      price: "75 USDC",
-      rating: 4.8,
-      reviews: 89,
-      description: "modern ui/ux design for web and mobile applications"
-    },
-    {
-      id: 3,
-      title: "smart contract development",
-      freelancer: "blockchain_dev",
-      price: "200 USDC",
-      rating: 5.0,
-      reviews: 45,
-      description: "ethereum smart contracts and defi protocol development"
-    },
-    {
-      id: 4,
-      title: "content writing",
-      freelancer: "wordsmith",
-      price: "25 USDC",
-      rating: 4.7,
-      reviews: 203,
-      description: "high-quality content writing for blogs, websites, and marketing"
-    },
-    {
-      id: 5,
-      title: "digital marketing",
-      freelancer: "marketing_guru",
-      price: "100 USDC",
-      rating: 4.6,
-      reviews: 156,
-      description: "comprehensive digital marketing strategy and social media management"
-    },
-    {
-      id: 6,
-      title: "mobile app development",
-      freelancer: "app_builder",
-      price: "150 USDC",
-      rating: 4.9,
-      reviews: 78,
-      description: "native and cross-platform mobile app development"
+  useEffect(() => {
+    fetchJobs();
+  }, []);
+
+  const fetchJobs = async () => {
+    try {
+      const response = await fetch('http://localhost:3002/api/jobs');
+      const data = await response.json();
+      
+      // If user is logged in, filter out their own jobs
+      let filteredJobs = data;
+      if (currentUser) {
+        filteredJobs = data.filter((job: Job) => job.employer_id !== currentUser.id.toString());
+      }
+      
+      // Get the 9 most recent jobs
+      const recentJobs = filteredJobs.slice(0, 9);
+      setJobs(recentJobs);
+    } catch (error) {
+      console.error('Error fetching jobs:', error);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
 
   return (
     <div style={{ 
@@ -124,66 +107,88 @@ const Home: React.FC = () => {
       {/* Services Grid */}
       <section style={{ padding: '2rem' }}>
         <h3 style={{ color: '#ffffff', fontSize: '2rem', fontWeight: '700', marginBottom: '2rem', textAlign: 'left' }}>
-          popular services
+          latest job postings
         </h3>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-          gap: '1.5rem'
-        }}>
-          {services.map(service => (
-            <div key={service.id} style={{
-              backgroundColor: '#111111',
-              border: '1px solid #333333',
-              borderRadius: '4px',
-              padding: '1.5rem',
-              transition: 'transform 0.2s, box-shadow 0.2s',
-              cursor: 'pointer'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.boxShadow = '0 8px 32px rgba(76, 29, 149, 0.1)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = 'none';
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                <h4 style={{ color: '#ffffff', fontSize: '1.1rem', fontWeight: '600', margin: 0 }}>
-                  {service.title}
-                </h4>
-                <span style={{ color: '#4c1d95', fontSize: '1.2rem', fontWeight: '700' }}>
-                  {service.price}
-                </span>
-              </div>
-              <p style={{ color: '#cccccc', fontSize: '14px', marginBottom: '1rem' }}>
-                by {service.freelancer}
-              </p>
-              <p style={{ color: '#888888', fontSize: '14px', marginBottom: '1rem' }}>
-                {service.description}
-              </p>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span style={{ color: '#ffd700', fontSize: '14px' }}>★</span>
-                  <span style={{ color: '#cccccc', fontSize: '14px' }}>{service.rating}</span>
-                  <span style={{ color: '#888888', fontSize: '14px' }}>({service.reviews})</span>
+        {loading ? (
+          <p style={{ color: '#888888', textAlign: 'center' }}>loading...</p>
+        ) : (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: '1.5rem'
+          }}>
+            {jobs.map(job => (
+              <Link key={job.id} to={`/job/${job.id}`} style={{ textDecoration: 'none' }}>
+              <div style={{
+                backgroundColor: '#111111',
+                border: '1px solid #333333',
+                borderRadius: '4px',
+                padding: '1.5rem',
+                transition: 'transform 0.2s, box-shadow 0.2s',
+                cursor: 'pointer'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = '0 8px 32px rgba(76, 29, 149, 0.1)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = 'none';
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                  <h4 style={{ color: '#ffffff', fontSize: '1.1rem', fontWeight: '600', margin: 0 }}>
+                    {job.title}
+                  </h4>
+                  <span style={{ color: '#4c1d95', fontSize: '1.2rem', fontWeight: '700' }}>
+                    {Number(job.price).toFixed(2)} {job.currency}
+                  </span>
                 </div>
-                <button style={{
-                  backgroundColor: '#4c1d95',
-                  color: 'white',
-                  border: 'none',
-                  padding: '8px 16px',
-                  borderRadius: '2px',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  fontWeight: '600'
-                }}>
-                  hire now
-                </button>
+                <p style={{ color: '#888888', fontSize: '14px', marginBottom: '1rem' }}>
+                  {job.description.length > 100 ? `${job.description.substring(0, 100)}...` : job.description}
+                </p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1rem' }}>
+                  {job.tags.slice(0, 3).map(tag => (
+                    <span key={tag} style={{
+                      padding: '3px 8px',
+                      borderRadius: '8px',
+                      backgroundColor: '#1a1a1a',
+                      color: '#4c1d95',
+                      fontSize: '11px',
+                      fontWeight: '600'
+                    }}>
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ 
+                    padding: '4px 10px',
+                    borderRadius: '12px',
+                    backgroundColor: job.status === 'open' ? '#1a4d1a' : '#1a3a4d',
+                    color: job.status === 'open' ? '#4ade80' : '#60a5fa',
+                    fontSize: '10px',
+                    fontWeight: '600'
+                  }}>
+                    {job.status}
+                  </span>
+                  <button style={{
+                    backgroundColor: '#4c1d95',
+                    color: 'white',
+                    border: 'none',
+                    padding: '8px 16px',
+                    borderRadius: '2px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '600'
+                  }}>
+                    apply now
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+              </Link>
+            ))}
+          </div>
+        )}
       </section>
     </div>
   );
