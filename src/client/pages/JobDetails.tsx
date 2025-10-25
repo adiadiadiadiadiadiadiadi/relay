@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { convertAndFormatCurrency, Currency } from '../utils/currencyConversion';
 import Header from '../components/Header';
@@ -21,6 +22,7 @@ interface Job {
 
 const JobDetails: React.FC = () => {
   const { jobId } = useParams<{ jobId: string }>();
+  const { currentUser } = useAuth();
   const { userCurrency } = useCurrency();
   const navigate = useNavigate();
   const [job, setJob] = useState<Job | null>(null);
@@ -48,6 +50,66 @@ const JobDetails: React.FC = () => {
 
   const handleClaimClick = () => {
     setShowConfirmation(true);
+  };
+
+  const handleConfirmClaim = async () => {
+    if (job) {
+      try {
+        // Optimistically update the UI immediately
+        setJob(prevJob => prevJob ? { ...prevJob, status: 'in_progress' } : null);
+        
+        // Close the confirmation dialog
+        setShowConfirmation(false);
+
+        // Update job status to in_progress on server
+        const response = await fetch(`http://localhost:3002/api/jobs/${job.id}/claim`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            status: 'in_progress',
+            claimed_by: currentUser?.id
+          })
+        });
+
+        if (!response.ok) {
+          console.error('Failed to claim job');
+          // If server request failed, refetch job to restore correct state
+          const fetchJob = async () => {
+            try {
+              const response = await fetch(`http://localhost:3002/api/jobs/${job.id}`);
+              if (response.ok) {
+                const data = await response.json();
+                setJob(data);
+              } else {
+                console.error('Failed to fetch job');
+              }
+            } catch (error) {
+              console.error('Error fetching job:', error);
+            }
+          };
+          fetchJob();
+        }
+      } catch (error) {
+        console.error('Error claiming job:', error);
+        // If there was an error, refetch job to restore correct state
+        const fetchJob = async () => {
+          try {
+            const response = await fetch(`http://localhost:3002/api/jobs/${job.id}`);
+            if (response.ok) {
+              const data = await response.json();
+              setJob(data);
+            } else {
+              console.error('Failed to fetch job');
+            }
+          } catch (error) {
+            console.error('Error fetching job:', error);
+          }
+        };
+        fetchJob();
+      }
+    }
   };
 
   const handleMessageSeller = () => {
@@ -239,6 +301,7 @@ const JobDetails: React.FC = () => {
           isOpen={showConfirmation}
           onClose={handleCloseConfirmation}
           onMessageSeller={handleMessageSeller}
+          onConfirm={handleConfirmClaim}
           jobTitle={job.title}
           jobPrice={convertAndFormatCurrency(job.price, job.currency as Currency, userCurrency)}
         />

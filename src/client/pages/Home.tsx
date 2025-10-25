@@ -38,10 +38,16 @@ const Home: React.FC = () => {
       const response = await fetch('http://localhost:3002/api/jobs');
       const data = await response.json();
       
-      // If user is logged in, filter out their own jobs
+      // If user is logged in, filter out their own jobs and already claimed jobs
       let filteredJobs = data;
       if (currentUser) {
-        filteredJobs = data.filter((job: Job) => job.employer_id !== currentUser.id.toString());
+        filteredJobs = data.filter((job: Job) => 
+          job.employer_id !== currentUser.id.toString() && 
+          job.status === 'open'
+        );
+      } else {
+        // If not logged in, only show open jobs
+        filteredJobs = data.filter((job: Job) => job.status === 'open');
       }
       
       // Get the 9 most recent jobs
@@ -59,6 +65,43 @@ const Home: React.FC = () => {
     e.stopPropagation();
     setSelectedJob(job);
     setShowConfirmation(true);
+  };
+
+  const handleConfirmClaim = async () => {
+    if (selectedJob) {
+      try {
+        // Optimistically update the UI immediately
+        setJobs(prevJobs => 
+          prevJobs.filter(job => job.id !== selectedJob.id)
+        );
+        
+        // Close the confirmation dialog
+        setShowConfirmation(false);
+        setSelectedJob(null);
+
+        // Update job status to in_progress on server
+        const response = await fetch(`http://localhost:3002/api/jobs/${selectedJob.id}/claim`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            status: 'in_progress',
+            claimed_by: currentUser?.id
+          })
+        });
+
+        if (!response.ok) {
+          console.error('Failed to claim job');
+          // If server request failed, refetch jobs to restore correct state
+          fetchJobs();
+        }
+      } catch (error) {
+        console.error('Error claiming job:', error);
+        // If there was an error, refetch jobs to restore correct state
+        fetchJobs();
+      }
+    }
   };
 
   const handleMessageSeller = () => {
@@ -153,7 +196,7 @@ const Home: React.FC = () => {
             gridTemplateColumns: 'repeat(3, 1fr)',
             gap: '1.5rem'
           }}>
-            {jobs.map(job => (
+            {jobs.filter(job => job.status === 'open').map(job => (
               <Link key={job.id} to={`/job/${job.id}`} style={{ textDecoration: 'none' }}>
               <div style={{
                 backgroundColor: '#111111',
@@ -241,6 +284,7 @@ const Home: React.FC = () => {
           isOpen={showConfirmation}
           onClose={handleCloseConfirmation}
           onMessageSeller={handleMessageSeller}
+          onConfirm={handleConfirmClaim}
           jobTitle={selectedJob.title}
           jobPrice={convertAndFormatCurrency(selectedJob.price, selectedJob.currency as Currency, userCurrency)}
         />

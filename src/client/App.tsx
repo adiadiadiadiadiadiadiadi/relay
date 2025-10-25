@@ -11,6 +11,7 @@ import EmployerDashboard from './pages/EmployerDashboard';
 import JobDetails from './pages/JobDetails';
 import AddWallet from './pages/AddWallet';
 import Messages from './pages/Messages';
+import AllPostings from './pages/AllPostings';
 import ProtectedRoute from './components/ProtectedRoute';
 import './App.css';
 
@@ -30,6 +31,7 @@ function App() {
               <Route path="/employer/:userId" element={<EmployerDashboard />} />
               <Route path="/add-wallet" element={<AddWallet />} />
               <Route path="/messages" element={<Messages />} />
+              <Route path="/all-postings" element={<AllPostings />} />
               <Route path="/home" element={<Home />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

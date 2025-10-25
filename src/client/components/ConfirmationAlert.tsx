@@ -4,6 +4,7 @@ interface ConfirmationAlertProps {
   isOpen: boolean;
   onClose: () => void;
   onMessageSeller: () => void;
+  onConfirm?: () => void;
   jobTitle: string;
   jobPrice: string;
 }
@@ -12,6 +13,7 @@ const ConfirmationAlert: React.FC<ConfirmationAlertProps> = ({
   isOpen,
   onClose,
   onMessageSeller,
+  onConfirm,
   jobTitle,
   jobPrice
 }) => {
@@ -27,6 +29,9 @@ const ConfirmationAlert: React.FC<ConfirmationAlertProps> = ({
   if (!isOpen) return null;
 
   const handleConfirm = () => {
+    if (onConfirm) {
+      onConfirm();
+    }
     setStep('success');
   };
 

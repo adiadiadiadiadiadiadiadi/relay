@@ -46,14 +46,16 @@ const EmployerDashboard: React.FC = () => {
     }
   }, [userId, currentUser]);
 
-  const fetchJobs = async (employerId: string) => {
+  const fetchJobs = async (userId: string) => {
     try {
       setLoading(true);
       const response = await fetch(`http://localhost:3002/api/jobs`);
       const allJobs = await response.json();
-      // Filter jobs by employer_id
-      const employerJobs = allJobs.filter((job: any) => job.employer_id === employerId);
-      setJobs(employerJobs);
+      // Filter jobs by employer_id OR employee_id (jobs posted by user OR claimed by user)
+      const userJobs = allJobs.filter((job: any) => 
+        job.employer_id === userId || job.employee_id === userId
+      );
+      setJobs(userJobs);
     } catch (error) {
       console.error('Error fetching jobs:', error);
     } finally {
@@ -71,6 +73,39 @@ const EmployerDashboard: React.FC = () => {
     e.stopPropagation();
     setSelectedJob(job);
     setShowConfirmation(true);
+  };
+
+  const handleConfirmClaim = async () => {
+    if (selectedJob) {
+      try {
+        // Update job status to in_progress on server
+        const response = await fetch(`http://localhost:3002/api/jobs/${selectedJob.id}/claim`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            status: 'in_progress',
+            claimed_by: currentUser?.id
+          })
+        });
+
+        if (response.ok) {
+          // Update local state to reflect the change
+          setJobs(prevJobs => 
+            prevJobs.map(job => 
+              job.id === selectedJob.id 
+                ? { ...job, status: 'in_progress' }
+                : job
+            )
+          );
+        } else {
+          console.error('Failed to claim job');
+        }
+      } catch (error) {
+        console.error('Error claiming job:', error);
+      }
+    }
   };
 
   const handleMessageSeller = () => {
@@ -381,9 +416,32 @@ const EmployerDashboard: React.FC = () => {
                 borderRadius: '4px',
                 padding: '1.5rem'
               }}>
-                <h3 style={{ color: '#ffffff', fontSize: '1rem', fontWeight: '600', marginBottom: '1rem' }}>
-                  wallet
-                </h3>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                  <h3 style={{ color: '#ffffff', fontSize: '1rem', fontWeight: '600', margin: 0 }}>
+                    wallet
+                  </h3>
+                  <Link to="/add-wallet" style={{ textDecoration: 'none' }}>
+                    <button style={{
+                      backgroundColor: '#4c1d95',
+                      color: '#ffffff',
+                      border: 'none',
+                      borderRadius: '4px',
+                      padding: '6px 12px',
+                      fontSize: '11px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      transition: 'background-color 0.2s'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = '#5b21b6';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = '#4c1d95';
+                    }}>
+                      + add wallet
+                    </button>
+                  </Link>
+                </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ color: '#888888', fontSize: '13px' }}>USDC balance</span>

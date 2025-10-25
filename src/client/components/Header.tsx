@@ -71,11 +71,76 @@ const Header: React.FC = () => {
       justifyContent: 'space-between',
       alignItems: 'center'
     }}>
-      <Link to="/" style={{ textDecoration: 'none' }}>
-        <h1 style={{ color: '#ffffff', fontSize: '1.5rem', fontWeight: '800', margin: 0 }}>
-          stellar marketplace
-        </h1>
-      </Link>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
+        <Link to="/" style={{ textDecoration: 'none' }}>
+          <h1 style={{ color: '#ffffff', fontSize: '1.5rem', fontWeight: '800', margin: 0 }}>
+            stellar marketplace
+          </h1>
+        </Link>
+        
+        {/* Navigation Links */}
+        {currentUser && (
+          <nav style={{ display: 'flex', gap: '1.5rem' }}>
+            <Link 
+              to="/" 
+              style={{ 
+                color: '#cccccc', 
+                textDecoration: 'none', 
+                fontSize: '14px',
+                fontWeight: '500',
+                transition: 'color 0.2s'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.color = '#ffffff'}
+              onMouseLeave={(e) => e.currentTarget.style.color = '#cccccc'}
+            >
+              home
+            </Link>
+            <Link 
+              to="/all-postings" 
+              style={{ 
+                color: '#cccccc', 
+                textDecoration: 'none', 
+                fontSize: '14px',
+                fontWeight: '500',
+                transition: 'color 0.2s'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.color = '#ffffff'}
+              onMouseLeave={(e) => e.currentTarget.style.color = '#cccccc'}
+            >
+              all postings
+            </Link>
+            <Link 
+              to="/services" 
+              style={{ 
+                color: '#cccccc', 
+                textDecoration: 'none', 
+                fontSize: '14px',
+                fontWeight: '500',
+                transition: 'color 0.2s'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.color = '#ffffff'}
+              onMouseLeave={(e) => e.currentTarget.style.color = '#cccccc'}
+            >
+              services
+            </Link>
+            <Link 
+              to="/post-job" 
+              style={{ 
+                color: '#cccccc', 
+                textDecoration: 'none', 
+                fontSize: '14px',
+                fontWeight: '500',
+                transition: 'color 0.2s'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.color = '#ffffff'}
+              onMouseLeave={(e) => e.currentTarget.style.color = '#cccccc'}
+            >
+              post job
+            </Link>
+          </nav>
+        )}
+      </div>
+      
       <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
         {currentUser ? (
           <>

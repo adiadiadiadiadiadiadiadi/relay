@@ -201,6 +201,97 @@ app.get("/api/jobs", async (req, res) => {
   }
 });
 
+// endpoint to claim a job
+app.put("/api/jobs/:id/claim", async (req, res) => {
+  const { id } = req.params;
+  const { status, claimed_by } = req.body;
+
+  try {
+    const [result] = await db.execute(
+      "UPDATE jobs SET status = ?, employee_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND status = 'open'",
+      [status, claimed_by, id]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(400).json({ error: "Job not available or already claimed" });
+    }
+
+    res.json({ message: "Job claimed successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
+// endpoint to get user wallets
+app.get("/api/users/:id/wallets", async (req, res) => {
+  const { id } = req.params;
+  
+  try {
+    const [rows] = await db.execute(
+      "SELECT * FROM wallets WHERE user_id = ? ORDER BY created_at DESC",
+      [id]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
+// endpoint to add a wallet
+app.post("/api/users/:id/wallets", async (req, res) => {
+  const { id } = req.params;
+  const { label, address } = req.body;
+
+  // Validation
+  if (!label || !address) {
+    return res.status(400).json({ error: "Label and address are required" });
+  }
+
+  try {
+    const walletId = crypto.randomUUID();
+    
+    // Insert wallet
+    await db.execute(
+      "INSERT INTO wallets (id, user_id, label, address) VALUES (?, ?, ?, ?)",
+      [walletId, id, label, address]
+    );
+
+    res.status(201).json({ 
+      id: walletId,
+      user_id: id,
+      label,
+      address,
+      created_at: new Date().toISOString()
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
+// endpoint to delete a wallet
+app.delete("/api/users/:id/wallets/:walletId", async (req, res) => {
+  const { id, walletId } = req.params;
+
+  try {
+    const [result] = await db.execute(
+      "DELETE FROM wallets WHERE id = ? AND user_id = ?",
+      [walletId, id]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: "Wallet not found" });
+    }
+
+    res.json({ message: "Wallet deleted successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
 const PORT = process.env.PORT || 3002;
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
