@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useCurrency } from '../contexts/CurrencyContext';
+import { convertAndFormatCurrency, Currency } from '../utils/currencyConversion';
 import Header from '../components/Header';
+import ConfirmationAlert from '../components/ConfirmationAlert';
 
 interface Job {
   id: string;
   title: string;
   description: string;
-  price: number;
+  price: number | string;
   currency: string;
   tags: string[];
   status: string;
@@ -18,8 +21,11 @@ interface Job {
 
 const JobDetails: React.FC = () => {
   const { jobId } = useParams<{ jobId: string }>();
+  const { userCurrency } = useCurrency();
+  const navigate = useNavigate();
   const [job, setJob] = useState<Job | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showConfirmation, setShowConfirmation] = useState(false);
 
   useEffect(() => {
     if (jobId) {
@@ -38,6 +44,19 @@ const JobDetails: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleClaimClick = () => {
+    setShowConfirmation(true);
+  };
+
+  const handleMessageSeller = () => {
+    setShowConfirmation(false);
+    navigate('/messages');
+  };
+
+  const handleCloseConfirmation = () => {
+    setShowConfirmation(false);
   };
 
   if (loading) {
@@ -117,7 +136,7 @@ const JobDetails: React.FC = () => {
           
           <div style={{ marginBottom: '1rem' }}>
             <span style={{ color: '#4c1d95', fontSize: '2rem', fontWeight: '700' }}>
-              {Number(job.price).toFixed(2)} {job.currency}
+              {convertAndFormatCurrency(job.price, job.currency as Currency, userCurrency)}
             </span>
           </div>
 
@@ -180,23 +199,37 @@ const JobDetails: React.FC = () => {
           </p>
         </div>
 
-        {/* Apply Button */}
+        {/* Claim Button */}
         <div style={{ marginTop: '2rem', textAlign: 'center' }}>
-          <button style={{
-            backgroundColor: '#4c1d95',
-            color: 'white',
-            border: 'none',
-            padding: '14px 32px',
-            borderRadius: '2px',
-            fontSize: '16px',
-            fontWeight: '600',
-            cursor: 'pointer',
-            textTransform: 'lowercase'
-          }}>
-            apply now
+          <button 
+            onClick={handleClaimClick}
+            style={{
+              backgroundColor: '#4c1d95',
+              color: 'white',
+              border: 'none',
+              padding: '14px 32px',
+              borderRadius: '2px',
+              fontSize: '16px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              textTransform: 'lowercase'
+            }}
+          >
+            claim
           </button>
         </div>
       </section>
+
+      {/* Confirmation Alert */}
+      {job && (
+        <ConfirmationAlert
+          isOpen={showConfirmation}
+          onClose={handleCloseConfirmation}
+          onMessageSeller={handleMessageSeller}
+          jobTitle={job.title}
+          jobPrice={convertAndFormatCurrency(job.price, job.currency as Currency, userCurrency)}
+        />
+      )}
     </div>
   );
 };

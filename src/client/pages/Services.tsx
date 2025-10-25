@@ -1,10 +1,13 @@
 import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useCurrency } from '../contexts/CurrencyContext';
+import { convertAndFormatCurrency, Currency } from '../utils/currencyConversion';
 import { useNavigate, Link } from 'react-router-dom';
 import Header from '../components/Header';
 
 const Services: React.FC = () => {
   const { currentUser } = useAuth();
+  const { userCurrency } = useCurrency();
   const navigate = useNavigate();
 
   // Mock freelancer services data
@@ -13,7 +16,8 @@ const Services: React.FC = () => {
       id: 1,
       title: "web development",
       freelancer: "alex_codes",
-      price: "50 USDC",
+      price: 50,
+      currency: "USDC" as Currency,
       rating: 4.9,
       reviews: 127,
       description: "full-stack web development with react, node.js, and modern frameworks",
@@ -23,7 +27,8 @@ const Services: React.FC = () => {
       id: 2,
       title: "ui/ux design",
       freelancer: "design_pro",
-      price: "75 USDC",
+      price: 75,
+      currency: "USDC" as Currency,
       rating: 4.8,
       reviews: 89,
       description: "modern ui/ux design for web and mobile applications",
@@ -33,7 +38,8 @@ const Services: React.FC = () => {
       id: 3,
       title: "smart contract development",
       freelancer: "blockchain_dev",
-      price: "200 USDC",
+      price: 200,
+      currency: "USDC" as Currency,
       rating: 5.0,
       reviews: 45,
       description: "ethereum smart contracts and defi protocol development",
@@ -43,7 +49,8 @@ const Services: React.FC = () => {
       id: 4,
       title: "content writing",
       freelancer: "wordsmith",
-      price: "25 USDC",
+      price: 25,
+      currency: "USDC" as Currency,
       rating: 4.7,
       reviews: 203,
       description: "high-quality content writing for blogs, websites, and marketing",
@@ -53,7 +60,8 @@ const Services: React.FC = () => {
       id: 5,
       title: "digital marketing",
       freelancer: "marketing_guru",
-      price: "100 USDC",
+      price: 100,
+      currency: "USDC" as Currency,
       rating: 4.6,
       reviews: 156,
       description: "comprehensive digital marketing strategy and social media management",
@@ -63,7 +71,8 @@ const Services: React.FC = () => {
       id: 6,
       title: "mobile app development",
       freelancer: "app_builder",
-      price: "150 USDC",
+      price: 150,
+      currency: "USDC" as Currency,
       rating: 4.9,
       reviews: 78,
       description: "native and cross-platform mobile app development",
@@ -73,7 +82,8 @@ const Services: React.FC = () => {
       id: 7,
       title: "logo design",
       freelancer: "brand_maker",
-      price: "45 USDC",
+      price: 45,
+      currency: "USDC" as Currency,
       rating: 4.8,
       reviews: 92,
       description: "professional logo design and branding packages",
@@ -83,7 +93,8 @@ const Services: React.FC = () => {
       id: 8,
       title: "seo optimization",
       freelancer: "seo_expert",
-      price: "60 USDC",
+      price: 60,
+      currency: "USDC" as Currency,
       rating: 4.7,
       reviews: 134,
       description: "on-page and off-page seo optimization for better rankings",
@@ -93,7 +104,8 @@ const Services: React.FC = () => {
       id: 9,
       title: "video editing",
       freelancer: "video_master",
-      price: "80 USDC",
+      price: 80,
+      currency: "USDC" as Currency,
       rating: 4.9,
       reviews: 67,
       description: "professional video editing and post-production services",
@@ -144,7 +156,7 @@ const Services: React.FC = () => {
                   {service.title}
                 </h4>
                 <span style={{ color: '#4c1d95', fontSize: '1.3rem', fontWeight: '700' }}>
-                  {service.price}
+                  {convertAndFormatCurrency(service.price, service.currency, userCurrency)}
                 </span>
               </div>
               <p style={{ color: '#cccccc', fontSize: '14px', marginBottom: '0.5rem', fontWeight: '500' }}>

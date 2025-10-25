@@ -1,21 +1,41 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useCurrency } from '../contexts/CurrencyContext';
+import { Currency } from '../utils/currencyConversion';
 
 const Header: React.FC = () => {
   const { currentUser, logout } = useAuth();
+  const { userCurrency, setUserCurrency } = useCurrency();
   const navigate = useNavigate();
-  const [userCurrency, setUserCurrency] = useState('USDC');
   const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false);
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const currencyDropdownRef = useRef<HTMLDivElement>(null);
+  const userDropdownRef = useRef<HTMLDivElement>(null);
   
-  const currencies = ['USDC', 'EURC', 'GBPC', 'CHFC'];
+  const currencies: Currency[] = ['USDC', 'EURC', 'GBPC', 'CHFC'];
+  
+  // Generate a display name from email (first part before @)
+  const getUserDisplayName = () => {
+    if (!currentUser?.email) return 'User';
+    return currentUser.email.split('@')[0];
+  };
 
-  // Initialize user currency from localStorage or default to USDC
+  // Close dropdowns when clicking outside
   useEffect(() => {
-    const savedCurrency = localStorage.getItem('userCurrency');
-    if (savedCurrency) {
-      setUserCurrency(savedCurrency);
-    }
+    const handleClickOutside = (event: MouseEvent) => {
+      if (currencyDropdownRef.current && !currencyDropdownRef.current.contains(event.target as Node)) {
+        setShowCurrencyDropdown(false);
+      }
+      if (userDropdownRef.current && !userDropdownRef.current.contains(event.target as Node)) {
+        setShowUserDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, []);
 
   const handleLogout = async () => {
@@ -27,9 +47,18 @@ const Header: React.FC = () => {
     }
   };
 
-  const handleUserCurrencyChange = (newCurrency: string) => {
+  const handleUserCurrencyChange = (newCurrency: Currency) => {
     setUserCurrency(newCurrency);
-    localStorage.setItem('userCurrency', newCurrency);
+    setShowCurrencyDropdown(false);
+  };
+
+  const handleViewProfile = () => {
+    setShowUserDropdown(false);
+    navigate('/profile');
+  };
+
+  const handleUserDropdownToggle = () => {
+    setShowUserDropdown(!showUserDropdown);
     setShowCurrencyDropdown(false);
   };
 
@@ -51,18 +80,76 @@ const Header: React.FC = () => {
         {currentUser ? (
           <>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <Link 
-                to={`/employer/${currentUser.id}`} 
-                style={{ 
-                  color: '#cccccc', 
-                  fontSize: '14px',
-                  textDecoration: 'none',
-                  cursor: 'pointer'
-                }}
-              >
-                {currentUser.email}
-              </Link>
-              <div style={{ position: 'relative' }}>
+              <div ref={userDropdownRef} style={{ position: 'relative' }}>
+                <button
+                  type="button"
+                  onClick={handleUserDropdownToggle}
+                  style={{
+                    backgroundColor: 'transparent',
+                    border: 'none',
+                    color: '#cccccc',
+                    fontSize: '14px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.25rem',
+                    padding: '4px 8px',
+                    borderRadius: '4px'
+                  }}
+                >
+                  {getUserDisplayName()} ▼
+                </button>
+                {showUserDropdown && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '100%',
+                    right: 0,
+                    marginTop: '0.25rem',
+                    backgroundColor: '#1a1a1a',
+                    border: '1px solid #333333',
+                    borderRadius: '4px',
+                    minWidth: '150px',
+                    zIndex: 1000
+                  }}>
+                    <button
+                      type="button"
+                      onClick={handleViewProfile}
+                      style={{
+                        width: '100%',
+                        padding: '8px 12px',
+                        backgroundColor: 'transparent',
+                        border: 'none',
+                        color: '#ffffff',
+                        textAlign: 'left',
+                        cursor: 'pointer',
+                        fontSize: '12px',
+                        fontWeight: '600',
+                        borderBottom: '1px solid #333333'
+                      }}
+                    >
+                      view profile
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      style={{
+                        width: '100%',
+                        padding: '8px 12px',
+                        backgroundColor: 'transparent',
+                        border: 'none',
+                        color: '#ffffff',
+                        textAlign: 'left',
+                        cursor: 'pointer',
+                        fontSize: '12px',
+                        fontWeight: '600'
+                      }}
+                    >
+                      log out
+                    </button>
+                  </div>
+                )}
+              </div>
+              <div ref={currencyDropdownRef} style={{ position: 'relative' }}>
                 <button
                   type="button"
                   onClick={() => setShowCurrencyDropdown(!showCurrencyDropdown)}
@@ -118,21 +205,6 @@ const Header: React.FC = () => {
                 )}
               </div>
             </div>
-            <button
-              onClick={handleLogout}
-              style={{
-                backgroundColor: '#4c1d95',
-                color: 'white',
-                border: 'none',
-                padding: '8px 16px',
-                borderRadius: '2px',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: '600'
-              }}
-            >
-              logout
-            </button>
           </>
         ) : (
           <div style={{ display: 'flex', gap: '1rem' }}>

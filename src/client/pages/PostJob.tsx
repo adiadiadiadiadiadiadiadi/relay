@@ -1,30 +1,30 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useCurrency } from '../contexts/CurrencyContext';
+import { Currency } from '../utils/currencyConversion';
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 
 const PostJob: React.FC = () => {
   const { currentUser } = useAuth();
+  const { userCurrency, setUserCurrency } = useCurrency();
   const navigate = useNavigate();
   
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [budget, setBudget] = useState('');
-  const [currency, setCurrency] = useState('USDC');
+  const [currency, setCurrency] = useState<Currency>('USDC');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
   const [showFormCurrencyDropdown, setShowFormCurrencyDropdown] = useState(false);
   
   const availableTags = ['development', 'design', 'marketing', 'writing', 'blockchain', 'video', 'music', 'photography', 'consulting'];
-  const currencies = ['USDC', 'EURC', 'GBPC', 'CHFC'];
+  const currencies: Currency[] = ['USDC', 'EURC', 'GBPC', 'CHFC'];
   
-  // Initialize user currency from localStorage or default to USDC
+  // Initialize form currency from user's preferred currency
   useEffect(() => {
-    const savedCurrency = localStorage.getItem('userCurrency');
-    if (savedCurrency) {
-      setCurrency(savedCurrency);
-    }
-  }, []);
+    setCurrency(userCurrency);
+  }, [userCurrency]);
 
 
 
@@ -200,6 +200,7 @@ const PostJob: React.FC = () => {
                       type="button"
                       onClick={() => {
                         setCurrency(curr);
+                        setUserCurrency(curr);
                         setShowFormCurrencyDropdown(false);
                       }}
                       style={{

@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useCurrency } from '../contexts/CurrencyContext';
+import { convertAndFormatCurrency, Currency } from '../utils/currencyConversion';
 import { useNavigate, Link } from 'react-router-dom';
 import Header from '../components/Header';
+import ConfirmationAlert from '../components/ConfirmationAlert';
 
 interface Job {
   id: string;
   title: string;
   description: string;
-  price: number;
+  price: number | string;
   currency: string;
   tags: string[];
   status: string;
@@ -19,9 +22,12 @@ interface Job {
 
 const Home: React.FC = () => {
   const { currentUser } = useAuth();
+  const { userCurrency } = useCurrency();
   const navigate = useNavigate();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
 
   useEffect(() => {
     fetchJobs();
@@ -46,6 +52,23 @@ const Home: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleClaimClick = (e: React.MouseEvent, job: Job) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setSelectedJob(job);
+    setShowConfirmation(true);
+  };
+
+  const handleMessageSeller = () => {
+    setShowConfirmation(false);
+    navigate('/messages');
+  };
+
+  const handleCloseConfirmation = () => {
+    setShowConfirmation(false);
+    setSelectedJob(null);
   };
 
   return (
@@ -140,7 +163,7 @@ const Home: React.FC = () => {
                     {job.title}
                   </h4>
                   <span style={{ color: '#4c1d95', fontSize: '1.2rem', fontWeight: '700' }}>
-                    {Number(job.price).toFixed(2)} {job.currency}
+                    {convertAndFormatCurrency(job.price, job.currency as Currency, userCurrency)}
                   </span>
                 </div>
                 <p style={{ color: '#888888', fontSize: '14px', marginBottom: '1rem' }}>
@@ -160,28 +183,36 @@ const Home: React.FC = () => {
                     </span>
                   ))}
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ 
-                    padding: '4px 10px',
-                    borderRadius: '12px',
-                    backgroundColor: job.status === 'open' ? '#1a4d1a' : '#1a3a4d',
-                    color: job.status === 'open' ? '#4ade80' : '#60a5fa',
-                    fontSize: '10px',
-                    fontWeight: '600'
-                  }}>
-                    {job.status}
-                  </span>
-                  <button style={{
-                    backgroundColor: '#4c1d95',
-                    color: 'white',
-                    border: 'none',
-                    padding: '8px 16px',
-                    borderRadius: '2px',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    fontWeight: '600'
-                  }}>
-                    apply now
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <span style={{ 
+                      padding: '4px 10px',
+                      borderRadius: '12px',
+                      backgroundColor: job.status === 'open' ? '#1a4d1a' : '#1a3a4d',
+                      color: job.status === 'open' ? '#4ade80' : '#60a5fa',
+                      fontSize: '10px',
+                      fontWeight: '600'
+                    }}>
+                      {job.status}
+                    </span>
+                    <span style={{ color: '#666666', fontSize: '11px' }}>
+                      {new Date(job.created_at).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <button 
+                    onClick={(e) => handleClaimClick(e, job)}
+                    style={{
+                      backgroundColor: '#4c1d95',
+                      color: 'white',
+                      border: 'none',
+                      padding: '8px 16px',
+                      borderRadius: '2px',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      fontWeight: '600'
+                    }}
+                  >
+                    claim
                   </button>
                 </div>
               </div>
@@ -190,6 +221,17 @@ const Home: React.FC = () => {
           </div>
         )}
       </section>
+
+      {/* Confirmation Alert */}
+      {selectedJob && (
+        <ConfirmationAlert
+          isOpen={showConfirmation}
+          onClose={handleCloseConfirmation}
+          onMessageSeller={handleMessageSeller}
+          jobTitle={selectedJob.title}
+          jobPrice={convertAndFormatCurrency(selectedJob.price, selectedJob.currency as Currency, userCurrency)}
+        />
+      )}
     </div>
   );
 };

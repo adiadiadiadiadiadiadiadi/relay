@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useCurrency } from '../contexts/CurrencyContext';
+import { convertAndFormatCurrency, Currency } from '../utils/currencyConversion';
 import { useNavigate, Link, useParams } from 'react-router-dom';
 import Header from '../components/Header';
 
@@ -7,7 +9,7 @@ interface Job {
   id: string;
   title: string;
   description: string;
-  price: number;
+  price: number | string;
   currency: string;
   tags: string[];
   status: string;
@@ -16,6 +18,7 @@ interface Job {
 
 const EmployerDashboard: React.FC = () => {
   const { currentUser } = useAuth();
+  const { userCurrency } = useCurrency();
   const navigate = useNavigate();
   const { userId } = useParams<{ userId: string }>();
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -59,25 +62,26 @@ const EmployerDashboard: React.FC = () => {
   const pastJobs = jobs.filter(job => job.status === 'completed' || job.status === 'cancelled');
 
   const renderJobCard = (job: Job) => (
-    <div
-      key={job.id}
-      style={{
-        backgroundColor: '#111111',
-        border: '1px solid #333333',
-        borderRadius: '4px',
-        padding: '1.25rem',
-        marginBottom: '1rem',
-        transition: 'transform 0.2s, box-shadow 0.2s'
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.transform = 'translateY(-2px)';
-        e.currentTarget.style.boxShadow = '0 8px 24px rgba(76, 29, 149, 0.1)';
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.transform = 'translateY(0)';
-        e.currentTarget.style.boxShadow = 'none';
-      }}
-    >
+    <Link key={job.id} to={`/job/${job.id}`} style={{ textDecoration: 'none' }}>
+      <div
+        style={{
+          backgroundColor: '#111111',
+          border: '1px solid #333333',
+          borderRadius: '4px',
+          padding: '1.25rem',
+          marginBottom: '1rem',
+          transition: 'transform 0.2s, box-shadow 0.2s',
+          cursor: 'pointer'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'translateY(-2px)';
+          e.currentTarget.style.boxShadow = '0 8px 24px rgba(76, 29, 149, 0.1)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.boxShadow = 'none';
+        }}
+      >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '0.75rem' }}>
         <h3 style={{ color: '#ffffff', fontSize: '1.1rem', fontWeight: '600', margin: 0 }}>
           {job.title}
@@ -115,13 +119,14 @@ const EmployerDashboard: React.FC = () => {
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <span style={{ color: '#4c1d95', fontSize: '1.2rem', fontWeight: '700' }}>
-          {Number(job.price).toFixed(2)} {job.currency}
+          {convertAndFormatCurrency(job.price, job.currency as Currency, userCurrency)}
         </span>
         <span style={{ color: '#666666', fontSize: '11px' }}>
           {new Date(job.created_at).toLocaleDateString()}
         </span>
       </div>
     </div>
+    </Link>
   );
 
   return (
