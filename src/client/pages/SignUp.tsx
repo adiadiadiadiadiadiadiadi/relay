@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 
 const SignUp: React.FC = () => {
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -32,7 +33,7 @@ const SignUp: React.FC = () => {
     try {
       setError('');
       setLoading(true);
-      await signup(email, password);
+      await signup(email, password, name);
       navigate('/home');
     } catch (error: any) {
       setError('Failed to create an account');
@@ -79,6 +80,32 @@ const SignUp: React.FC = () => {
         )}
 
         <form onSubmit={handleSubmit}>
+          <div style={{ marginBottom: '1.5rem' }}>
+            <label style={{ display: 'block', marginBottom: '0.5rem', color: '#cccccc', fontSize: '14px', fontWeight: '700' }}>
+              name
+            </label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                border: '1px solid #333333',
+                borderRadius: '2px',
+                fontSize: '16px',
+                backgroundColor: '#1a1a1a',
+                color: '#ffffff',
+                boxSizing: 'border-box',
+                outline: 'none',
+                transition: 'border-color 0.2s'
+              }}
+              onFocus={(e) => e.target.style.borderColor = '#4c1d95'}
+              onBlur={(e) => e.target.style.borderColor = '#333333'}
+            />
+          </div>
+
           <div style={{ marginBottom: '1.5rem' }}>
             <label style={{ display: 'block', marginBottom: '0.5rem', color: '#cccccc', fontSize: '14px', fontWeight: '700' }}>
               email

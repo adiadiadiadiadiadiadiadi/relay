@@ -51,9 +51,17 @@ const Header: React.FC = () => {
         {currentUser ? (
           <>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <span style={{ color: '#cccccc', fontSize: '14px' }}>
+              <Link 
+                to={`/employer/${currentUser.id}`} 
+                style={{ 
+                  color: '#cccccc', 
+                  fontSize: '14px',
+                  textDecoration: 'none',
+                  cursor: 'pointer'
+                }}
+              >
                 {currentUser.email}
-              </span>
+              </Link>
               <div style={{ position: 'relative' }}>
                 <button
                   type="button"

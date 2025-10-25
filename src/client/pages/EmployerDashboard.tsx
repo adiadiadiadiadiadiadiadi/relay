@@ -20,6 +20,13 @@ const EmployerDashboard: React.FC = () => {
   const { userId } = useParams<{ userId: string }>();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showRatingDropdown, setShowRatingDropdown] = useState(false);
+  
+  // Hardcoded ratings
+  const employerRating = 4.8;
+  const employeeRating = 4.6;
+  const marketplaceRating = ((employerRating + employeeRating) / 2).toFixed(1);
+  const totalReviews = 127;
 
   useEffect(() => {
     if (userId && userId !== currentUser?.id) {
@@ -46,7 +53,76 @@ const EmployerDashboard: React.FC = () => {
     }
   };
 
+  // Categorize jobs
+  const openJobs = jobs.filter(job => job.status === 'open');
+  const currentJobs = jobs.filter(job => job.status === 'in_progress' || job.status === 'submitted');
+  const pastJobs = jobs.filter(job => job.status === 'completed' || job.status === 'cancelled');
 
+  const renderJobCard = (job: Job) => (
+    <div
+      key={job.id}
+      style={{
+        backgroundColor: '#111111',
+        border: '1px solid #333333',
+        borderRadius: '4px',
+        padding: '1.25rem',
+        marginBottom: '1rem',
+        transition: 'transform 0.2s, box-shadow 0.2s'
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = 'translateY(-2px)';
+        e.currentTarget.style.boxShadow = '0 8px 24px rgba(76, 29, 149, 0.1)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = 'translateY(0)';
+        e.currentTarget.style.boxShadow = 'none';
+      }}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '0.75rem' }}>
+        <h3 style={{ color: '#ffffff', fontSize: '1.1rem', fontWeight: '600', margin: 0 }}>
+          {job.title}
+        </h3>
+        <span style={{
+          padding: '4px 10px',
+          borderRadius: '12px',
+          backgroundColor: job.status === 'open' ? '#1a4d1a' : job.status === 'in_progress' ? '#1a3a4d' : '#4d1a1a',
+          color: job.status === 'open' ? '#4ade80' : job.status === 'in_progress' ? '#60a5fa' : '#f87171',
+          fontSize: '10px',
+          fontWeight: '600'
+        }}>
+          {job.status}
+        </span>
+      </div>
+      <p style={{ color: '#888888', fontSize: '13px', marginBottom: '0.75rem', lineHeight: '1.5' }}>
+        {job.description.length > 100 ? `${job.description.substring(0, 100)}...` : job.description}
+      </p>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.75rem' }}>
+        {job.tags.slice(0, 3).map(tag => (
+          <span
+            key={tag}
+            style={{
+              padding: '3px 8px',
+              borderRadius: '8px',
+              backgroundColor: '#1a1a1a',
+              color: '#4c1d95',
+              fontSize: '11px',
+              fontWeight: '600'
+            }}
+          >
+            {tag}
+          </span>
+        ))}
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span style={{ color: '#4c1d95', fontSize: '1.2rem', fontWeight: '700' }}>
+          {Number(job.price).toFixed(2)} {job.currency}
+        </span>
+        <span style={{ color: '#666666', fontSize: '11px' }}>
+          {new Date(job.created_at).toLocaleDateString()}
+        </span>
+      </div>
+    </div>
+  );
 
   return (
     <div style={{ 
@@ -55,129 +131,307 @@ const EmployerDashboard: React.FC = () => {
       fontFamily: '"Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif'
     }}>
       <Header />
-      
-      {/* Modified header for dashboard-specific buttons */}
-      <div style={{
-        backgroundColor: '#111111',
-        borderBottom: '1px solid #333333',
-        padding: '1rem 2rem',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderTop: '1px solid #333333'
-      }}>
-        <Link to="/post-job" style={{ 
-          backgroundColor: '#4c1d95', 
-          color: 'white', 
-          padding: '8px 16px', 
-          borderRadius: '2px', 
-          textDecoration: 'none', 
-          fontSize: '14px', 
-          fontWeight: '600' 
-        }}>
-          post job
-        </Link>
+
+      {/* Profile Title */}
+      <div style={{ padding: '2rem 2rem 1rem 2rem', maxWidth: '1400px', margin: '0 auto' }}>
+        <h1 style={{ color: '#ffffff', fontSize: '2rem', fontWeight: '800', margin: 0, textTransform: 'lowercase' }}>
+          {currentUser?.name || currentUser?.email}'s profile
+        </h1>
       </div>
 
       {/* Main Content */}
-      <section style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
-        <h2 style={{ color: '#ffffff', fontSize: '2rem', fontWeight: '800', marginBottom: '1rem' }}>
-          my job postings
-        </h2>
-
-        {loading ? (
-          <p style={{ color: '#888888' }}>Loading...</p>
-        ) : jobs.length === 0 ? (
+      <section style={{ padding: '1rem 2rem 2rem 2rem', maxWidth: '1400px', margin: '0 auto' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 3fr', gap: '2rem' }}>
+          
+          {/* Left Column - Profile & Rating */}
           <div style={{
-            backgroundColor: '#111111',
-            border: '1px solid #333333',
-            borderRadius: '4px',
-            padding: '3rem',
-            textAlign: 'center'
-          }}>
-            <p style={{ color: '#888888', fontSize: '1.1rem', marginBottom: '1rem' }}>
-              no jobs posted yet
-            </p>
-            <Link to="/post-job" style={{
-              backgroundColor: '#4c1d95',
-              color: 'white',
-              padding: '12px 24px',
-              borderRadius: '4px',
-              textDecoration: 'none',
-              fontSize: '16px',
-              fontWeight: '600',
-              display: 'inline-block'
-            }}>
-              post your first job
-            </Link>
-          </div>
-        ) : (
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+            display: 'flex',
+            flexDirection: 'column',
             gap: '1.5rem'
           }}>
-            {jobs.map(job => (
-              <div
-                key={job.id}
-                style={{
-                  backgroundColor: '#111111',
-                  border: '1px solid #333333',
-                  borderRadius: '4px',
-                  padding: '1.5rem',
-                  transition: 'transform 0.2s, box-shadow 0.2s'
+            {/* Rating Box */}
+            <div style={{
+              backgroundColor: '#111111',
+              border: '1px solid #333333',
+              borderRadius: '4px',
+              padding: '1.5rem',
+              position: 'relative'
+            }}>
+              <h3 style={{ color: '#ffffff', fontSize: '1rem', fontWeight: '600', marginBottom: '1rem' }}>
+                marketplace rating
+              </h3>
+              <div 
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '0.75rem', 
+                  marginBottom: '0.75rem',
+                  cursor: 'pointer'
                 }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-4px)';
-                  e.currentTarget.style.boxShadow = '0 12px 40px rgba(76, 29, 149, 0.15)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = 'none';
-                }}
+                onClick={() => setShowRatingDropdown(!showRatingDropdown)}
               >
-                <h3 style={{ color: '#ffffff', fontSize: '1.3rem', fontWeight: '600', marginBottom: '0.75rem' }}>
-                  {job.title}
-                </h3>
-                <p style={{ color: '#888888', fontSize: '14px', marginBottom: '1rem', lineHeight: '1.5' }}>
-                  {job.description}
-                </p>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1rem' }}>
-                  {job.tags.map(tag => (
-                    <span
-                      key={tag}
-                      style={{
-                        padding: '4px 8px',
-                        borderRadius: '12px',
-                        backgroundColor: '#1a1a1a',
-                        color: '#4c1d95',
-                        fontSize: '12px',
-                        fontWeight: '600'
-                      }}
-                    >
-                      {tag}
+                <span style={{ color: '#ffffff', fontSize: '2.5rem', fontWeight: '800' }}>
+                  {marketplaceRating}
+                </span>
+                <div style={{ display: 'flex', gap: '0.25rem' }}>
+                  {[1, 2, 3, 4, 5].map(star => (
+                    <span key={star} style={{ color: star <= Math.floor(Number(marketplaceRating)) ? '#fbbf24' : '#444444', fontSize: '1.5rem' }}>
+                      ★
                     </span>
                   ))}
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ color: '#4c1d95', fontSize: '1.5rem', fontWeight: '700' }}>
-                    {Number(job.price).toFixed(2)} {job.currency}
-                  </span>
-                  <span style={{
-                    padding: '4px 12px',
-                    borderRadius: '12px',
-                    backgroundColor: job.status === 'open' ? '#1a4d1a' : '#4d1a1a',
-                    color: job.status === 'open' ? '#4ade80' : '#f87171',
-                    fontSize: '12px',
-                    fontWeight: '600'
-                  }}>
-                    {job.status}
-                  </span>
+                <span style={{ color: '#666666', fontSize: '1.2rem' }}>
+                  ▼
+                </span>
+              </div>
+              <p style={{ color: '#888888', fontSize: '13px', margin: 0 }}>
+                {totalReviews} reviews
+              </p>
+              
+              {showRatingDropdown && (
+                <div style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: 0,
+                  right: 0,
+                  marginTop: '0.5rem',
+                  backgroundColor: '#1a1a1a',
+                  border: '1px solid #333333',
+                  borderRadius: '4px',
+                  padding: '1rem',
+                  zIndex: 1000,
+                  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)'
+                }}>
+                  <div style={{ marginBottom: '0.75rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                      <span style={{ color: '#ffffff', fontSize: '12px', fontFamily: '"Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif' }}>employer rating</span>
+                      <span style={{ color: '#ffffff', fontSize: '14px', fontWeight: '600', fontFamily: '"Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif' }}>{employerRating}</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.25rem', marginLeft: '0.5rem' }}>
+                      {[1, 2, 3, 4, 5].map(star => (
+                        <span key={star} style={{ color: star <= Math.floor(employerRating) ? '#fbbf24' : '#444444', fontSize: '1rem' }}>
+                          ★
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <div style={{ borderTop: '1px solid #333333', paddingTop: '0.75rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                      <span style={{ color: '#ffffff', fontSize: '12px', fontFamily: '"Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif' }}>employee rating</span>
+                      <span style={{ color: '#ffffff', fontSize: '14px', fontWeight: '600', fontFamily: '"Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif' }}>{employeeRating}</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.25rem', marginLeft: '0.5rem' }}>
+                      {[1, 2, 3, 4, 5].map(star => (
+                        <span key={star} style={{ color: star <= Math.floor(employeeRating) ? '#fbbf24' : '#444444', fontSize: '1rem' }}>
+                          ★
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Stats Box */}
+            <div style={{
+              backgroundColor: '#111111',
+              border: '1px solid #333333',
+              borderRadius: '4px',
+              padding: '1.5rem'
+            }}>
+              <h3 style={{ color: '#ffffff', fontSize: '1rem', fontWeight: '600', marginBottom: '1rem' }}>
+                statistics
+              </h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: '#888888', fontSize: '13px' }}>total jobs</span>
+                  <span style={{ color: '#ffffff', fontSize: '13px', fontWeight: '600' }}>{jobs.length}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: '#888888', fontSize: '13px' }}>open</span>
+                  <span style={{ color: '#4ade80', fontSize: '13px', fontWeight: '600' }}>{openJobs.length}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: '#888888', fontSize: '13px' }}>in progress</span>
+                  <span style={{ color: '#60a5fa', fontSize: '13px', fontWeight: '600' }}>{currentJobs.length}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: '#888888', fontSize: '13px' }}>completed</span>
+                  <span style={{ color: '#888888', fontSize: '13px', fontWeight: '600' }}>{pastJobs.length}</span>
                 </div>
               </div>
-            ))}
+            </div>
+
+            {/* Wallet Display - Only show for current user */}
+            {(!userId || userId === currentUser?.id) && (
+              <div style={{
+                backgroundColor: '#111111',
+                border: '1px solid #333333',
+                borderRadius: '4px',
+                padding: '1.5rem'
+              }}>
+                <h3 style={{ color: '#ffffff', fontSize: '1rem', fontWeight: '600', marginBottom: '1rem' }}>
+                  wallet
+                </h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ color: '#888888', fontSize: '13px' }}>USDC balance</span>
+                    <span style={{ color: '#4c1d95', fontSize: '16px', fontWeight: '700' }}>1,250.00</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ color: '#888888', fontSize: '13px' }}>EURC balance</span>
+                    <span style={{ color: '#4c1d95', fontSize: '16px', fontWeight: '700' }}>850.50</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ color: '#888888', fontSize: '13px' }}>GBPC balance</span>
+                    <span style={{ color: '#4c1d95', fontSize: '16px', fontWeight: '700' }}>320.75</span>
+                  </div>
+                  <div style={{ 
+                    borderTop: '1px solid #333333', 
+                    paddingTop: '0.75rem',
+                    marginTop: '0.25rem'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ color: '#ffffff', fontSize: '13px', fontWeight: '600' }}>total value</span>
+                      <span style={{ color: '#ffffff', fontSize: '18px', fontWeight: '800' }}>$2,421.25</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
-        )}
+
+          {/* Right Column - Job Lists */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+            
+            {/* Open Jobs */}
+            <div>
+              <h2 style={{ 
+                color: '#ffffff', 
+                fontSize: '1.5rem', 
+                fontWeight: '700', 
+                marginBottom: '1rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}>
+                open jobs
+                <span style={{ 
+                  backgroundColor: '#1a4d1a', 
+                  color: '#4ade80', 
+                  fontSize: '12px', 
+                  padding: '2px 8px', 
+                  borderRadius: '10px',
+                  fontWeight: '600'
+                }}>
+                  {openJobs.length}
+                </span>
+              </h2>
+              {loading ? (
+                <p style={{ color: '#888888' }}>loading...</p>
+              ) : openJobs.length === 0 ? (
+                <div style={{
+                  backgroundColor: '#111111',
+                  border: '1px solid #333333',
+                  borderRadius: '4px',
+                  padding: '2rem',
+                  textAlign: 'center'
+                }}>
+                  <p style={{ color: '#888888', fontSize: '14px' }}>
+                    no open jobs
+                  </p>
+                </div>
+              ) : (
+                openJobs.map(renderJobCard)
+              )}
+            </div>
+
+            {/* Current Jobs */}
+            <div>
+              <h2 style={{ 
+                color: '#ffffff', 
+                fontSize: '1.5rem', 
+                fontWeight: '700', 
+                marginBottom: '1rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}>
+                current jobs
+                <span style={{ 
+                  backgroundColor: '#1a3a4d', 
+                  color: '#60a5fa', 
+                  fontSize: '12px', 
+                  padding: '2px 8px', 
+                  borderRadius: '10px',
+                  fontWeight: '600'
+                }}>
+                  {currentJobs.length}
+                </span>
+              </h2>
+              {loading ? (
+                <p style={{ color: '#888888' }}>loading...</p>
+              ) : currentJobs.length === 0 ? (
+                <div style={{
+                  backgroundColor: '#111111',
+                  border: '1px solid #333333',
+                  borderRadius: '4px',
+                  padding: '2rem',
+                  textAlign: 'center'
+                }}>
+                  <p style={{ color: '#888888', fontSize: '14px' }}>
+                    no active jobs
+                  </p>
+                </div>
+              ) : (
+                currentJobs.map(renderJobCard)
+              )}
+            </div>
+
+            {/* Past Jobs */}
+            <div>
+              <h2 style={{ 
+                color: '#ffffff', 
+                fontSize: '1.5rem', 
+                fontWeight: '700', 
+                marginBottom: '1rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}>
+                past jobs
+                <span style={{ 
+                  backgroundColor: '#1a1a1a', 
+                  color: '#888888', 
+                  fontSize: '12px', 
+                  padding: '2px 8px', 
+                  borderRadius: '10px',
+                  fontWeight: '600'
+                }}>
+                  {pastJobs.length}
+                </span>
+              </h2>
+              {loading ? (
+                <p style={{ color: '#888888' }}>loading...</p>
+              ) : pastJobs.length === 0 ? (
+                <div style={{
+                  backgroundColor: '#111111',
+                  border: '1px solid #333333',
+                  borderRadius: '4px',
+                  padding: '2rem',
+                  textAlign: 'center'
+                }}>
+                  <p style={{ color: '#888888', fontSize: '14px' }}>
+                    no completed jobs
+                  </p>
+                </div>
+              ) : (
+                pastJobs.map(renderJobCard)
+              )}
+            </div>
+
+          </div>
+        </div>
       </section>
     </div>
   );
