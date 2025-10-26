@@ -18,6 +18,7 @@ interface Job {
   employer_id: string;
   employer_name?: string;
   escrow_id?: string;
+  employee_id?: string;
 }
 
 const AllPostings: React.FC = () => {
@@ -308,13 +309,13 @@ const AllPostings: React.FC = () => {
                       <span style={{
                         padding: '4px 10px',
                         borderRadius: '12px',
-                        backgroundColor: '#1a4d1a',
-                        color: '#4ade80',
+                        backgroundColor: job.status === 'submitted' ? '#1a3a4d' : '#1a4d1a',
+                        color: job.status === 'submitted' ? '#60a5fa' : '#4ade80',
                         fontSize: '10px',
                         fontWeight: '600',
                         marginLeft: '0.5rem'
                       }}>
-                        {job.status}
+                        {job.status === 'submitted' ? 'waiting for verification' : job.status}
                       </span>
                     </div>
                     
@@ -390,6 +391,67 @@ const AllPostings: React.FC = () => {
                     }}
                   >
                     claim
+                  </button>
+                )}
+                {/* Submit Button - Only show for in_progress jobs for the employee */}
+                {job.status === 'in_progress' && job.employee_id === currentUser?.id?.toString() && (
+                  <button
+                    onClick={async (e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      try {
+                        const response = await fetch(`http://localhost:3002/api/jobs/${job.id}/submit`, {
+                          method: 'PUT',
+                          headers: {
+                            'Content-Type': 'application/json',
+                          },
+                          body: JSON.stringify({
+                            employee_id: currentUser?.id
+                          })
+                        });
+                        
+                        if (response.ok) {
+                          const fetchJobs = async () => {
+                            const response = await fetch('http://localhost:3002/api/jobs');
+                            if (response.ok) {
+                              const data = await response.json();
+                              setJobs(data);
+                            }
+                          };
+                          fetchJobs();
+                          alert('Job submitted successfully!');
+                        } else {
+                          const error = await response.json();
+                          alert(error.error || 'Failed to submit job');
+                        }
+                      } catch (error) {
+                        console.error('Error submitting job:', error);
+                        alert('Error submitting job');
+                      }
+                    }}
+                    style={{
+                      position: 'absolute',
+                      top: '1rem',
+                      right: '1rem',
+                      backgroundColor: '#1a4d1a',
+                      color: '#ffffff',
+                      border: 'none',
+                      borderRadius: '6px',
+                      padding: '8px 16px',
+                      fontSize: '12px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      transition: 'background-color 0.2s',
+                      zIndex: 10
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = '#225d22';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = '#1a4d1a';
+                    }}
+                  >
+                    submit
                   </button>
                 )}
               </div>

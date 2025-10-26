@@ -452,6 +452,109 @@ app.put("/api/jobs/:id/claim", async (req, res) => {
   }
 });
 
+// endpoint to submit a job (employee submits work)
+app.put("/api/jobs/:id/submit", async (req, res) => {
+  const { id } = req.params;
+  const { employee_id } = req.body;
+
+  try {
+    // First get the job to find the employer
+    const [jobRows] = await db.execute(
+      "SELECT employer_id, title, status, employee_id FROM jobs WHERE id = ?",
+      [id]
+    );
+
+    if (jobRows.length === 0) {
+      return res.status(404).json({ error: "Job not found" });
+    }
+
+    const job = jobRows[0];
+
+    // Verify the employee owns this job
+    if (parseInt(job.employee_id) !== parseInt(employee_id)) {
+      return res.status(403).json({ error: "You don't have permission to submit this job" });
+    }
+
+    // Update job status to submitted
+    const [result] = await db.execute(
+      "UPDATE jobs SET status = 'submitted', updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+      [id]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(400).json({ error: "Failed to update job status" });
+    }
+
+    // Find conversation between employer and employee
+    const [conversations] = await db.execute(
+      "SELECT id FROM conversations WHERE (recipient1 = ? AND recipient2 = ?) OR (recipient1 = ? AND recipient2 = ?)",
+      [job.employer_id, employee_id, employee_id, job.employer_id]
+    );
+
+    if (conversations.length > 0) {
+      const conversationId = conversations[0].id;
+      
+      // Send message to employer
+      const messageId = crypto.randomUUID();
+      const messageContent = "The product has been submitted and is ready for review.";
+      
+      await db.execute(
+        "INSERT INTO messages (id, conversation_id, sender_id, content) VALUES (?, ?, ?, ?)",
+        [messageId, conversationId, employee_id, messageContent]
+      );
+    }
+
+    res.json({ message: "Job submitted successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
+// endpoint to verify a job (employer verifies work)
+app.put("/api/jobs/:id/verify", async (req, res) => {
+  const { id } = req.params;
+  const { employer_id } = req.body;
+
+  try {
+    // First get the job to verify ownership
+    const [jobRows] = await db.execute(
+      "SELECT employer_id, status FROM jobs WHERE id = ?",
+      [id]
+    );
+
+    if (jobRows.length === 0) {
+      return res.status(404).json({ error: "Job not found" });
+    }
+
+    const job = jobRows[0];
+
+    // Verify the employer owns this job
+    if (parseInt(job.employer_id) !== parseInt(employer_id)) {
+      return res.status(403).json({ error: "You don't have permission to verify this job" });
+    }
+
+    // Update job status to completed
+    const [result] = await db.execute(
+      "UPDATE jobs SET status = 'completed', updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+      [id]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(400).json({ error: "Failed to update job status" });
+    }
+
+    // Call handlePayment function (placeholder for now)
+    // TODO: Implement payment logic here
+    console.log('Job verified, payment should be processed now');
+
+    res.json({ message: "Job verified successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
 // endpoint to get user wallets
 app.get("/api/users/:id/wallets", async (req, res) => {
   const { id } = req.params;

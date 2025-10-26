@@ -295,6 +295,109 @@ router.post('/jobs/:id/submit', async (req, res) => {
   }
 });
 
+// PUT /api/jobs/:id/submit - Employee submits work (same functionality, different method)
+router.put('/jobs/:id/submit', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { employee_id } = req.body;
+
+    // First get the job to find the employer and verify employee owns it
+    const [jobRows] = await db.query(
+      'SELECT employer_id, title, status, employee_id FROM jobs WHERE id = ?',
+      [id]
+    );
+
+    if (jobRows.length === 0) {
+      return res.status(404).json({ error: 'Job not found' });
+    }
+
+    const job = jobRows[0];
+
+    // Verify the employee owns this job
+    if (parseInt(job.employee_id) !== parseInt(employee_id)) {
+      return res.status(403).json({ error: "You don't have permission to submit this job" });
+    }
+
+    // Update job status to submitted
+    const [result] = await db.query(
+      'UPDATE jobs SET status = "submitted", updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      [id]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(400).json({ error: 'Failed to update job status' });
+    }
+
+    // Find conversation between employer and employee
+    const [conversations] = await db.query(
+      'SELECT id FROM conversations WHERE (recipient1 = ? AND recipient2 = ?) OR (recipient1 = ? AND recipient2 = ?)',
+      [job.employer_id, employee_id, employee_id, job.employer_id]
+    );
+
+    if (conversations.length > 0) {
+      const conversationId = conversations[0].id;
+      
+      // Send message to employer
+      const messageId = uuidv4();
+      const messageContent = 'The product has been submitted and is ready for review.';
+      
+      await db.query(
+        'INSERT INTO messages (id, conversation_id, sender_id, content) VALUES (?, ?, ?, ?)',
+        [messageId, conversationId, employee_id, messageContent]
+      );
+    }
+
+    res.json({ message: 'Job submitted successfully' });
+  } catch (error) {
+    console.error('Error submitting job:', error);
+    res.status(500).json({ error: 'Failed to submit job' });
+  }
+});
+
+// PUT /api/jobs/:id/verify - Employer verifies work
+router.put('/jobs/:id/verify', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { employer_id } = req.body;
+
+    // First get the job to verify ownership
+    const [jobRows] = await db.query(
+      'SELECT employer_id, status FROM jobs WHERE id = ?',
+      [id]
+    );
+
+    if (jobRows.length === 0) {
+      return res.status(404).json({ error: 'Job not found' });
+    }
+
+    const job = jobRows[0];
+
+    // Verify the employer owns this job
+    if (parseInt(job.employer_id) !== parseInt(employer_id)) {
+      return res.status(403).json({ error: "You don't have permission to verify this job" });
+    }
+
+    // Update job status to completed
+    const [result] = await db.query(
+      'UPDATE jobs SET status = "completed", updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      [id]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(400).json({ error: 'Failed to update job status' });
+    }
+
+    // Call handlePayment function (placeholder for now)
+    // TODO: Implement payment logic here
+    console.log('Job verified, payment should be processed now');
+
+    res.json({ message: 'Job verified successfully' });
+  } catch (error) {
+    console.error('Error verifying job:', error);
+    res.status(500).json({ error: 'Failed to verify job' });
+  }
+});
+
 // POST /api/jobs/:id/approve - Employer approves work
 router.post('/jobs/:id/approve', async (req, res) => {
   try {

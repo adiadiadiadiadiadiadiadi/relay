@@ -19,6 +19,7 @@ interface Job {
   employer_name?: string;
   employer_email?: string;
   escrow_id?: string;
+  employee_id?: string;
 }
 
 const EmployerDashboard: React.FC = () => {
@@ -390,6 +391,132 @@ const EmployerDashboard: React.FC = () => {
           </button>
         )}
       </>
+    )}
+    
+    {/* Submit Button for In-Progress Jobs for Employee */}
+    {job.status === 'in_progress' && job.employee_id === (userId || currentUser?.id)?.toString() && (
+      <button
+        onClick={async (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          try {
+            const response = await fetch(`http://localhost:3002/api/jobs/${job.id}/submit`, {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                employee_id: currentUser?.id
+              })
+            });
+            
+            if (response.ok) {
+              const fetchJobs = async () => {
+                const response = await fetch(`http://localhost:3002/api/jobs`);
+                const allJobs = await response.json();
+                const userJobs = allJobs.filter((j: any) => 
+                  j.employer_id === userId || j.employee_id === userId
+                );
+                setJobs(userJobs);
+              };
+              fetchJobs();
+              alert('Job submitted successfully!');
+            } else {
+              const error = await response.json();
+              alert(error.error || 'Failed to submit job');
+            }
+          } catch (error) {
+            console.error('Error submitting job:', error);
+            alert('Error submitting job');
+          }
+        }}
+        style={{
+          position: 'absolute',
+          top: '1rem',
+          right: '1rem',
+          backgroundColor: '#1a4d1a',
+          color: '#ffffff',
+          border: 'none',
+          borderRadius: '6px',
+          padding: '8px 16px',
+          fontSize: '12px',
+          fontWeight: '600',
+          cursor: 'pointer',
+          transition: 'background-color 0.2s',
+          zIndex: 10
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor = '#225d22';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = '#1a4d1a';
+        }}
+      >
+        submit
+      </button>
+    )}
+    
+    {/* Verify Button for Submitted Jobs for Employer */}
+    {job.status === 'submitted' && job.employer_id === (userId || currentUser?.id)?.toString() && (
+      <button
+        onClick={async (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          try {
+            const response = await fetch(`http://localhost:3002/api/jobs/${job.id}/verify`, {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                employer_id: currentUser?.id
+              })
+            });
+            
+            if (response.ok) {
+              const fetchJobs = async () => {
+                const response = await fetch(`http://localhost:3002/api/jobs`);
+                const allJobs = await response.json();
+                const userJobs = allJobs.filter((j: any) => 
+                  j.employer_id === userId || j.employee_id === userId
+                );
+                setJobs(userJobs);
+              };
+              fetchJobs();
+              alert('Job verified successfully! Payment will be processed.');
+            } else {
+              const error = await response.json();
+              alert(error.error || 'Failed to verify job');
+            }
+          } catch (error) {
+            console.error('Error verifying job:', error);
+            alert('Error verifying job');
+          }
+        }}
+        style={{
+          position: 'absolute',
+          top: '1rem',
+          right: '1rem',
+          backgroundColor: '#1a4d1a',
+          color: '#ffffff',
+          border: 'none',
+          borderRadius: '6px',
+          padding: '8px 16px',
+          fontSize: '12px',
+          fontWeight: '600',
+          cursor: 'pointer',
+          transition: 'background-color 0.2s',
+          zIndex: 10
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor = '#225d22';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = '#1a4d1a';
+        }}
+      >
+        verify
+      </button>
     )}
     </div>
   );

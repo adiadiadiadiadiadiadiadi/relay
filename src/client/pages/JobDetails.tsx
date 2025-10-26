@@ -18,6 +18,7 @@ interface Job {
   employer_id: string;
   employer_name?: string;
   escrow_id?: string;
+  employee_id?: string;
 }
 
 const JobDetails: React.FC = () => {
@@ -134,6 +135,85 @@ const JobDetails: React.FC = () => {
     setShowConfirmation(false);
   };
 
+  const handleSubmit = async () => {
+    if (!job || !currentUser) return;
+    
+    try {
+      const response = await fetch(`http://localhost:3002/api/jobs/${job.id}/submit`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          employee_id: currentUser.id
+        })
+      });
+
+      if (response.ok) {
+        // Show waiting message
+        alert('Job submitted successfully! Waiting for verification...');
+        
+        // Find the conversation between employer and employee
+        const conversationsResponse = await fetch(`http://localhost:3002/api/conversations/${currentUser.id}`);
+        if (conversationsResponse.ok) {
+          const conversations = await conversationsResponse.json();
+          const jobConversation = conversations.find((conv: any) => 
+            conv.contact_id?.toString() === job.employer_id?.toString() ||
+            conv.contact_id?.toString() === currentUser.id?.toString()
+          );
+          
+          if (jobConversation) {
+            // Navigate to messages with the conversation
+            navigate('/messages', { 
+              state: { 
+                openConversationId: jobConversation.id
+              } 
+            });
+          } else {
+            navigate('/messages');
+          }
+        } else {
+          navigate('/messages');
+        }
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Failed to submit job');
+      }
+    } catch (error) {
+      console.error('Error submitting job:', error);
+      alert('Error submitting job');
+    }
+  };
+
+  const handlePayment = async () => {
+    if (!job || !currentUser) return;
+    
+    try {
+      // Call the verify endpoint
+      const response = await fetch(`http://localhost:3002/api/jobs/${job.id}/verify`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          employer_id: currentUser.id
+        })
+      });
+
+      if (response.ok) {
+        // Refresh job data
+        fetchJob(job.id);
+        alert('Job verified successfully! Payment will be processed.');
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Failed to verify job');
+      }
+    } catch (error) {
+      console.error('Error verifying job:', error);
+      alert('Error verifying job');
+    }
+  };
+
   if (loading) {
     return (
       <div style={{ 
@@ -200,12 +280,12 @@ const JobDetails: React.FC = () => {
             <span style={{
               padding: '4px 10px',
               borderRadius: '12px',
-              backgroundColor: job.status === 'open' ? '#1a4d1a' : '#1a3a4d',
-              color: job.status === 'open' ? '#4ade80' : '#60a5fa',
+              backgroundColor: job.status === 'submitted' ? '#1a3a4d' : (job.status === 'open' ? '#1a4d1a' : '#1a3a4d'),
+              color: job.status === 'submitted' ? '#60a5fa' : (job.status === 'open' ? '#4ade80' : '#60a5fa'),
               fontSize: '10px',
               fontWeight: '600'
             }}>
-              {job.status}
+              {job.status === 'submitted' ? 'waiting for verification' : job.status}
             </span>
           </div>
           
@@ -292,6 +372,71 @@ const JobDetails: React.FC = () => {
               }}
             >
               claim
+            </button>
+          </div>
+        )}
+
+        {/* Submit Button - Only show for in_progress jobs for the employee */}
+        {job.status === 'in_progress' && job.employee_id === currentUser?.id?.toString() && (
+          <div style={{ marginTop: '2rem', textAlign: 'center' }}>
+            <button 
+              onClick={handleSubmit}
+              style={{
+                backgroundColor: '#4c1d95',
+                color: 'white',
+                border: 'none',
+                padding: '14px 32px',
+                borderRadius: '2px',
+                fontSize: '16px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                textTransform: 'lowercase'
+              }}
+            >
+              submit
+            </button>
+          </div>
+        )}
+
+        {/* Waiting for verification message - Only show for submitted jobs for the employer */}
+        {job.status === 'submitted' && job.employer_id === currentUser?.id?.toString() && (
+          <div style={{ 
+            marginTop: '2rem',
+            backgroundColor: '#111111',
+            border: '1px solid #333333',
+            borderRadius: '4px',
+            padding: '1.5rem',
+            textAlign: 'center'
+          }}>
+            <p style={{ 
+              color: '#60a5fa', 
+              fontSize: '16px', 
+              fontWeight: '600',
+              margin: 0
+            }}>
+              ⏳ waiting for verification
+            </p>
+          </div>
+        )}
+
+        {/* Verify Button - Only show for submitted jobs for the employer */}
+        {job.status === 'submitted' && job.employer_id === currentUser?.id?.toString() && (
+          <div style={{ marginTop: '2rem', textAlign: 'center' }}>
+            <button 
+              onClick={handlePayment}
+              style={{
+                backgroundColor: '#4c1d95',
+                color: 'white',
+                border: 'none',
+                padding: '14px 32px',
+                borderRadius: '2px',
+                fontSize: '16px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                textTransform: 'lowercase'
+              }}
+            >
+              verify & pay
             </button>
           </div>
         )}

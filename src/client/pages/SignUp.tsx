@@ -7,6 +7,7 @@ const SignUp: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [walletAddress, setWalletAddress] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
