@@ -1,6 +1,9 @@
 #![no_std]
 use soroban_sdk::{contract, contractimpl, contracttype, Address, Env, String, Vec};
 
+#[cfg(test)]
+mod test;
+
 #[contract]
 pub struct ReviewContract;
 
