@@ -13,6 +13,10 @@
     "mysql2": "^3.15.3",
     "bcrypt": "^5.1.1",
     "jsonwebtoken": "^9.0.2",
-    "dotenv": "^16.4.1"
+    "dotenv": "^16.4.1",
+    "cors": "^2.8.5",
+    "axios": "^1.6.0",
+    "uuid": "^9.0.0",
+    "@stellar/stellar-sdk": "^12.0.0"
   }
 }
