@@ -44,3 +44,27 @@ CREATE TABLE IF NOT EXISTS notifications (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
+
+-- Create conversations table
+CREATE TABLE IF NOT EXISTS conversations (
+  id VARCHAR(36) PRIMARY KEY,
+  recipient1 INT NOT NULL,
+  recipient2 INT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (recipient1) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (recipient2) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Create messages table
+CREATE TABLE IF NOT EXISTS messages (
+  id VARCHAR(36) PRIMARY KEY,
+  conversation_id VARCHAR(36) NOT NULL,
+  sender_id INT NOT NULL,
+  content TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE,
+  FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Add payment_reservation column to jobs table (for escrow)
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS payment_reservation TEXT NULL;

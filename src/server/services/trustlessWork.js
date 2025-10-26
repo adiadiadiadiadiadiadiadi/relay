@@ -29,7 +29,19 @@ const trustlessAPI = axios.create({
  */
 async function createEscrow(serviceProvider, approver, receiver, disputeResolver, deadline, amount, token) {
   try {
-    const response = await trustlessAPI.post('/deployer/single-release', {
+    console.log('=== CREATING ESCROW VIA TRUSTLESS API ===');
+    console.log('Endpoint: /single-release/deploy');
+    console.log('service_provider:', serviceProvider);
+    console.log('approver:', approver);
+    console.log('receiver:', receiver);
+    console.log('dispute_resolver:', disputeResolver);
+    console.log('deadline:', deadline);
+    console.log('amount:', amount);
+    console.log('token:', token);
+    console.log('API_KEY present:', !!API_KEY);
+    console.log('==========================================');
+    
+    const response = await trustlessAPI.post('/single-release/deploy', {
       service_provider: serviceProvider,
       approver: approver,
       receiver: receiver,
@@ -39,12 +51,19 @@ async function createEscrow(serviceProvider, approver, receiver, disputeResolver
       token: token
     });
 
+    console.log('✅ Escrow created successfully!');
+    console.log('Response:', response.data);
+    console.log('==========================================');
+    
     return {
       xdr: response.data.xdr,
       escrow_id: response.data.escrow_id
     };
   } catch (error) {
-    console.error('Trustless Work API Error (createEscrow):', error.response?.data || error.message);
+    console.error('❌ TRUSTLESS API ERROR (createEscrow):');
+    console.error('Error data:', error.response?.data || error.message);
+    console.error('Status:', error.response?.status);
+    console.error('==========================================');
     throw new Error('Failed to create escrow');
   }
 }

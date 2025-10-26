@@ -219,8 +219,25 @@ const Messages: React.FC = () => {
     setSearchResults([]);
   };
 
-  const handleViewProfile = (contactId: number) => {
-    navigate(`/employer/${contactId}`);
+  const handleViewProfile = (contactId: number, recipient1: number, recipient2: number) => {
+    // Determine which user is NOT the current user
+    const currentUserIdStr = currentUser?.id ? currentUser.id.toString() : '';
+    
+    // Find the recipient that is NOT the current user
+    const recipient1Str = recipient1.toString();
+    const recipient2Str = recipient2.toString();
+    
+    let otherUserId;
+    if (recipient1Str === currentUserIdStr) {
+      otherUserId = recipient2;
+    } else if (recipient2Str === currentUserIdStr) {
+      otherUserId = recipient1;
+    } else {
+      // Neither matches (shouldn't happen), default to recipient1
+      otherUserId = recipient1;
+    }
+    
+    navigate(`/employer/${otherUserId}`);
   };
 
   const selectedConversationData = conversations.find(c => c.id === selectedConversation);
@@ -465,7 +482,7 @@ const Messages: React.FC = () => {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleViewProfile(conversation.contact_id);
+                          handleViewProfile(conversation.contact_id, conversation.recipient1, conversation.recipient2);
                         }}
                         style={{
                           background: 'none',
@@ -538,7 +555,13 @@ const Messages: React.FC = () => {
                     </button>
                   )}
                   <button
-                    onClick={() => handleViewProfile(selectedConversationData.contact_id)}
+                    onClick={() => {
+                      handleViewProfile(
+                        selectedConversationData.contact_id,
+                        selectedConversationData.recipient1,
+                        selectedConversationData.recipient2
+                      );
+                    }}
                     style={{
                       background: 'none',
                       border: 'none',

@@ -1,10 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
+
+interface Wallet {
+  id: string;
+  address: string;
+  label: string;
+}
 
 interface ConfirmationAlertProps {
   isOpen: boolean;
   onClose: () => void;
   onMessageSeller: () => void;
-  onConfirm?: () => void;
+  onConfirm?: (selectedWallet?: Wallet) => void;
   jobTitle: string;
   jobPrice: string;
 }
@@ -17,20 +25,88 @@ const ConfirmationAlert: React.FC<ConfirmationAlertProps> = ({
   jobTitle,
   jobPrice
 }) => {
-  const [step, setStep] = useState<'confirm' | 'success'>('confirm');
+  const { currentUser } = useAuth();
+  const { showToast } = useToast();
+  const [step, setStep] = useState<'confirm' | 'wallet' | 'success'>('confirm');
+  const [wallets, setWallets] = useState<Wallet[]>([]);
+  const [selectedWallet, setSelectedWallet] = useState<Wallet | null>(null);
+  const [loadingWallets, setLoadingWallets] = useState(false);
 
   // Reset to confirm step when modal opens
   React.useEffect(() => {
     if (isOpen) {
       setStep('confirm');
+      setSelectedWallet(null);
     }
   }, [isOpen]);
+
+  // Auto-select first wallet when wallets are loaded
+  React.useEffect(() => {
+    if (wallets.length > 0 && !selectedWallet) {
+      setSelectedWallet(wallets[0]);
+    }
+  }, [wallets, selectedWallet]);
+
+  // Fetch user wallets when modal opens
+  useEffect(() => {
+    if (isOpen && currentUser) {
+      fetchWallets();
+    }
+  }, [isOpen, currentUser]);
+
+  const fetchWallets = async () => {
+    if (!currentUser) return;
+    
+    try {
+      setLoadingWallets(true);
+      const response = await fetch(`http://localhost:3002/api/users/${currentUser.id}/wallets`);
+      if (response.ok) {
+        const data = await response.json();
+        setWallets(data);
+      } else {
+        console.error('Failed to fetch wallets');
+      }
+    } catch (error) {
+      console.error('Error fetching wallets:', error);
+    } finally {
+      setLoadingWallets(false);
+    }
+  };
+
+  // Redirect to login if modal opens for non-authenticated user
+  React.useEffect(() => {
+    if (isOpen && !currentUser) {
+      onClose();
+    }
+  }, [isOpen, currentUser, onClose]);
 
   if (!isOpen) return null;
 
   const handleConfirm = () => {
-    if (onConfirm) {
-      onConfirm();
+    // Check if user is logged in
+    if (!currentUser) {
+      onClose();
+      return;
+    }
+    
+    // Check if user has wallets
+    if (wallets.length === 0) {
+      showToast('You need to add a wallet before claiming jobs. Please add a wallet first.', 'error');
+      onClose();
+      return;
+    }
+    
+    // Always show wallet selection step
+    setStep('wallet');
+  };
+
+  const handleWalletSelect = (wallet: Wallet) => {
+    setSelectedWallet(wallet);
+  };
+
+  const handleProceedWithWallet = () => {
+    if (selectedWallet && onConfirm) {
+      onConfirm(selectedWallet);
     }
     setStep('success');
   };
@@ -42,6 +118,7 @@ const ConfirmationAlert: React.FC<ConfirmationAlertProps> = ({
 
   const handleClose = () => {
     setStep('confirm');
+    setSelectedWallet(null);
     onClose();
   };
 
@@ -138,6 +215,86 @@ const ConfirmationAlert: React.FC<ConfirmationAlertProps> = ({
                 once claimed, you will be able to start working on this project and communicate with the employer.
               </p>
             </>
+          ) : step === 'wallet' ? (
+            <>
+              <h2 style={{
+                color: '#ffffff',
+                fontSize: '1.5rem',
+                fontWeight: '700',
+                marginBottom: '1rem'
+              }}>
+                select wallet
+              </h2>
+              <p style={{
+                color: '#cccccc',
+                fontSize: '16px',
+                marginBottom: '1.5rem',
+                lineHeight: 1.5
+              }}>
+                choose which wallet to use for this transaction:
+              </p>
+              
+              {loadingWallets ? (
+                <div style={{
+                  textAlign: 'center',
+                  padding: '2rem',
+                  color: '#888888'
+                }}>
+                  loading wallets...
+                </div>
+              ) : (
+                <div style={{
+                  maxHeight: '200px',
+                  overflowY: 'auto',
+                  marginBottom: '1.5rem'
+                }}>
+                  {wallets.map(wallet => (
+                    <div
+                      key={wallet.id}
+                      onClick={() => handleWalletSelect(wallet)}
+                      style={{
+                        backgroundColor: selectedWallet?.id === wallet.id ? '#4c1d95' : '#1a1a1a',
+                        border: `1px solid ${selectedWallet?.id === wallet.id ? '#4c1d95' : '#333333'}`,
+                        borderRadius: '4px',
+                        padding: '1rem',
+                        marginBottom: '0.5rem',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseEnter={(e) => {
+                        if (selectedWallet?.id !== wallet.id) {
+                          e.currentTarget.style.backgroundColor = '#2a2a2a';
+                          e.currentTarget.style.borderColor = '#4c1d95';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (selectedWallet?.id !== wallet.id) {
+                          e.currentTarget.style.backgroundColor = '#1a1a1a';
+                          e.currentTarget.style.borderColor = '#333333';
+                        }
+                      }}
+                    >
+                      <h4 style={{
+                        color: '#ffffff',
+                        fontSize: '1rem',
+                        fontWeight: '600',
+                        margin: '0 0 0.25rem 0'
+                      }}>
+                        {wallet.label}
+                      </h4>
+                      <p style={{
+                        color: '#888888',
+                        fontSize: '12px',
+                        margin: 0,
+                        fontFamily: 'monospace'
+                      }}>
+                        {wallet.address}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
           ) : (
             <>
               <h2 style={{
@@ -228,6 +385,40 @@ const ConfirmationAlert: React.FC<ConfirmationAlertProps> = ({
                 }}
               >
                 yes, claim it
+              </button>
+            </>
+          ) : step === 'wallet' ? (
+            <>
+              <button
+                onClick={() => setStep('confirm')}
+                style={{
+                  backgroundColor: 'transparent',
+                  color: '#888888',
+                  border: '1px solid #333333',
+                  padding: '12px 24px',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '600'
+                }}
+              >
+                back
+              </button>
+              <button
+                onClick={handleProceedWithWallet}
+                disabled={!selectedWallet}
+                style={{
+                  backgroundColor: selectedWallet ? '#4c1d95' : '#333333',
+                  color: 'white',
+                  border: 'none',
+                  padding: '12px 24px',
+                  borderRadius: '4px',
+                  cursor: selectedWallet ? 'pointer' : 'not-allowed',
+                  fontSize: '14px',
+                  fontWeight: '600'
+                }}
+              >
+                proceed with wallet
               </button>
             </>
           ) : (

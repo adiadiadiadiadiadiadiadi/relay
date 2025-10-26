@@ -12,8 +12,10 @@ dotenv.config();
 const app = express();
 
 // Enable CORS for all routes
+const CORS_ORIGIN = process.env.CORS_ORIGIN || '*';
+
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Origin', CORS_ORIGIN);
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
   
@@ -53,11 +55,17 @@ app.use("/api", jobsRouter(db));
 
 // endpoint to register/signup
 app.post("/api/auth/signup", async (req, res) => {
-  const { email, password, name } = req.body;
+  const { email, password, name, wallet_address, wallet_label } = req.body;
+  
+  console.log('Signup request:', { email, name, wallet_address, wallet_label });
   
   // Validation
   if (!email || !password) {
     return res.status(400).json({ error: "Email and password are required" });
+  }
+
+  if (!wallet_address) {
+    return res.status(400).json({ error: "Wallet address is required" });
   }
 
   if (password.length < 6) {
@@ -84,6 +92,18 @@ app.post("/api/auth/signup", async (req, res) => {
       [name || email, email, hashedPassword]
     );
 
+    console.log('User inserted with ID:', result.insertId);
+
+    // Create wallet for the user
+    const walletId = crypto.randomUUID();
+    console.log('Creating wallet with ID:', walletId);
+    await db.execute(
+      "INSERT INTO wallets (id, user_id, address, label) VALUES (?, ?, ?, ?)",
+      [walletId, result.insertId, wallet_address, wallet_label || 'Default Wallet']
+    );
+
+    console.log('Wallet created successfully');
+
     // Generate JWT token
     const token = jwt.sign({ id: result.insertId, email }, JWT_SECRET, { expiresIn: "24h" });
 
@@ -94,8 +114,8 @@ app.post("/api/auth/signup", async (req, res) => {
       token 
     });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Database error" });
+    console.error('Signup error:', err);
+    res.status(500).json({ error: "Database error: " + err.message });
   }
 });
 
@@ -154,61 +174,21 @@ app.get("/api/users", async (req, res) => {
   }
 });
 
-// endpoint to create a job posting
-app.post("/api/jobs", async (req, res) => {
-  const { title, description, price, currency, tags, userId, employerName } = req.body;
-
-  // Validation
-  if (!title || !description || !price || !currency || !tags || !userId) {
-    return res.status(400).json({ error: "All fields are required" });
-  }
-
-  if (!Array.isArray(tags) || tags.length === 0) {
-    return res.status(400).json({ error: "At least one tag is required" });
-  }
-
+// endpoint to get a single user by ID
+app.get("/api/users/:id", async (req, res) => {
   try {
-    const jobId = crypto.randomUUID();
-    
-    // Insert job
-    await db.execute(
-      "INSERT INTO jobs (id, employer_id, title, description, tags, price, currency, status, employer_name) VALUES (?, ?, ?, ?, ?, ?, ?, 'open', ?)",
-      [jobId, userId, title, description, JSON.stringify(tags), price, currency, employerName || null]
-    );
-
-    res.status(201).json({ 
-      id: jobId, 
-      title,
-      description,
-      price,
-      currency,
-      tags,
-      employerId: userId,
-      employerName: employerName || null,
-      status: 'open',
-      createdAt: new Date().toISOString()
-    });
+    const { id } = req.params;
+    const [rows] = await db.execute("SELECT id, name, email FROM users WHERE id = ?", [id]);
+    if (rows.length === 0) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    res.json(rows[0]);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Database error" });
   }
 });
 
-// endpoint to get all jobs
-app.get("/api/jobs", async (req, res) => {
-  try {
-    const [rows] = await db.execute(
-      "SELECT * FROM jobs WHERE status != 'cancelled' ORDER BY created_at DESC"
-    );
-    res.json(rows.map(job => ({
-      ...job,
-      tags: job.tags ? (typeof job.tags === 'string' ? JSON.parse(job.tags) : job.tags) : []
-    })));
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Database error" });
-  }
-});
 
 // endpoint to get conversations for a user
 app.get("/api/conversations/:userId", async (req, res) => {
@@ -225,15 +205,15 @@ app.get("/api/conversations/:userId", async (req, res) => {
         c.created_at,
         CASE 
           WHEN c.recipient1 = ? THEN u2.name
-          ELSE u1.name
+          WHEN c.recipient2 = ? THEN u1.name
         END as contact_name,
         CASE 
           WHEN c.recipient1 = ? THEN u2.email
-          ELSE u1.email
+          WHEN c.recipient2 = ? THEN u1.email
         END as contact_email,
         CASE 
           WHEN c.recipient1 = ? THEN u2.id
-          ELSE u1.id
+          WHEN c.recipient2 = ? THEN u1.id
         END as contact_id,
         j.title as job_title,
         m.content as last_message,
@@ -254,7 +234,7 @@ app.get("/api/conversations/:userId", async (req, res) => {
       )
       WHERE c.recipient1 = ? OR c.recipient2 = ?
       ORDER BY COALESCE(m.created_at, c.created_at) DESC
-    `, [userId, userId, userId, userId, userId]);
+    `, [userId, userId, userId, userId, userId, userId, userId, userId]);
 
     console.log('Found conversations:', conversations.length);
     res.json(conversations);
@@ -359,111 +339,23 @@ app.post("/api/conversations", async (req, res) => {
   }
 });
 
-// endpoint to claim a job
-app.put("/api/jobs/:id/claim", async (req, res) => {
-  const { id } = req.params;
-  const { status, claimed_by } = req.body;
-
-  try {
-    // First get the job to find the employer
-    const [jobRows] = await db.execute(
-      "SELECT employer_id, title FROM jobs WHERE id = ?",
-      [id]
-    );
-
-    if (jobRows.length === 0) {
-      return res.status(404).json({ error: "Job not found" });
-    }
-
-    const job = jobRows[0];
-
-    // Update job status
-    const [result] = await db.execute(
-      "UPDATE jobs SET status = ?, employee_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND status = 'open'",
-      [status, claimed_by, id]
-    );
-
-    if (result.affectedRows === 0) {
-      return res.status(400).json({ error: "Job not available or already claimed" });
-    }
-
-    // Create notification for the employer
-    const notificationId = crypto.randomUUID();
-    await db.execute(
-      "INSERT INTO notifications (id, user_id, message, type, `read`) VALUES (?, ?, ?, ?, 0)",
-      [notificationId, job.employer_id, `Your job "${job.title}" has been claimed!`, 'job_claim']
-    );
-
-    // Check if conversation already exists between employer and employee
-    const [existingConversations] = await db.execute(
-      "SELECT id FROM conversations WHERE (recipient1 = ? AND recipient2 = ?) OR (recipient1 = ? AND recipient2 = ?)",
-      [job.employer_id, claimed_by, claimed_by, job.employer_id]
-    );
-
-    let conversationId;
-    
-    if (existingConversations.length > 0) {
-      // Use existing conversation
-      conversationId = existingConversations[0].id;
-      console.log('Using existing conversation:', conversationId, 'between', job.employer_id, 'and', claimed_by);
-    } else {
-      // Create new conversation
-      conversationId = crypto.randomUUID();
-      console.log('Creating new conversation:', conversationId, 'between', job.employer_id, 'and', claimed_by);
-      
-      await db.execute(
-        "INSERT INTO conversations (id, recipient1, recipient2) VALUES (?, ?, ?)",
-        [conversationId, job.employer_id, claimed_by]
-      );
-      console.log('Conversation created successfully');
-    }
-
-    try {
-      // Create initial message from employee to employer
-      const messageId = crypto.randomUUID();
-      const initialMessage = `Hi! I'm interested in your job "${job.title}". I'd love to discuss the details and get started on this project.`;
-      
-      console.log('Creating initial message:', messageId, 'in conversation:', conversationId);
-      
-      await db.execute(
-        "INSERT INTO messages (id, conversation_id, sender_id, content) VALUES (?, ?, ?, ?)",
-        [messageId, conversationId, claimed_by, initialMessage]
-      );
-      console.log('Initial message created successfully');
-
-      console.log('Job claimed successfully, conversation:', conversationId);
-      console.log('About to send response with conversation_id:', conversationId);
-      
-      res.json({ 
-        message: "Job claimed successfully",
-        conversation_id: conversationId
-      });
-    } catch (conversationError) {
-      console.error('Error creating message:', conversationError);
-      // Still return success for job claim, but without conversation
-      res.json({ 
-        message: "Job claimed successfully",
-        error: "Failed to create message"
-      });
-    }
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Database error" });
-  }
-});
 
 // endpoint to get user wallets
 app.get("/api/users/:id/wallets", async (req, res) => {
   const { id } = req.params;
   
+  console.log('Fetching wallets for user ID:', id, 'type:', typeof id);
+  
   try {
+    // Try both string and integer lookup
     const [rows] = await db.execute(
       "SELECT * FROM wallets WHERE user_id = ? ORDER BY created_at DESC",
       [id]
     );
+    console.log('Found wallets:', rows.length, rows);
     res.json(rows);
   } catch (err) {
-    console.error(err);
+    console.error('Error fetching wallets:', err);
     res.status(500).json({ error: "Database error" });
   }
 });

@@ -10,7 +10,7 @@ interface User {
 
 interface AuthContextType {
   currentUser: User | null;
-  signup: (email: string, password: string, name?: string, walletAddress?: string) => Promise<void>;
+  signup: (email: string, password: string, name?: string, walletAddress?: string, walletLabel?: string) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   loading: boolean;
@@ -47,13 +47,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(false);
   }, []);
 
-  function signup(email: string, password: string, name?: string, walletAddress?: string) {
+  function signup(email: string, password: string, name?: string, walletAddress?: string, walletLabel?: string) {
     return fetch(`${API_URL}/api/auth/signup`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ email, password, name, wallet_address: walletAddress }),
+      body: JSON.stringify({ email, password, name, wallet_address: walletAddress, wallet_label: walletLabel }),
     })
       .then(async (response) => {
         const data = await response.json();

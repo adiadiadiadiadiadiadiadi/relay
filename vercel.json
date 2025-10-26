@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "buildCommand": "cd src/client && npm install && npm run build",
+  "outputDirectory": "src/client/build",
+  "installCommand": "cd src/client && npm install",
+  "framework": "create-react-app",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ],
+  "env": {
+    "REACT_APP_API_URL": "@api_url"
+  }
+}
+

@@ -16,6 +16,7 @@ interface Job {
   status: string;
   created_at: string;
   employer_id: string;
+  employee_id?: string;
   employer_name?: string;
   escrow_id?: string;
 }
@@ -71,7 +72,7 @@ const Home: React.FC = () => {
     setShowConfirmation(true);
   };
 
-  const handleConfirmClaim = async () => {
+  const handleConfirmClaim = async (selectedWallet?: any) => {
     if (selectedJob) {
       try {
         // Optimistically update the UI immediately
@@ -91,7 +92,8 @@ const Home: React.FC = () => {
           },
           body: JSON.stringify({
             status: 'in_progress',
-            claimed_by: currentUser?.id
+            claimed_by: currentUser?.id,
+            wallet_address: selectedWallet?.address
           })
         });
 
@@ -153,18 +155,18 @@ const Home: React.FC = () => {
 
       {/* Hero Section */}
       <section style={{
-        padding: '4rem 2rem',
+        padding: '6rem 2rem',
         textAlign: 'center',
         backgroundColor: '#111111',
         margin: '2rem',
-        borderRadius: '4px',
+        borderRadius: '8px',
         border: '1px solid #333333'
       }}>
-        <h2 style={{ color: '#ffffff', fontSize: '3rem', fontWeight: '800', marginBottom: '1rem' }}>
-          find freelance services
+        <h2 style={{ color: '#ffffff', fontSize: '2.5rem', fontWeight: '700', marginBottom: '1rem', lineHeight: '1.2' }}>
+          Trustless freelance work on Stellar
         </h2>
-        <p style={{ color: '#cccccc', fontSize: '1.2rem', marginBottom: '2rem' }}>
-          connect with top freelancers and pay with stablecoins
+        <p style={{ color: '#888888', fontSize: '1rem', marginBottom: '2rem', maxWidth: '600px', margin: '0 auto 2rem auto', lineHeight: '1.6' }}>
+          Find projects, get paid in USDC. Payments held in escrow until work is verified. No middleman.
         </p>
         <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
           <Link to="/services" style={{ textDecoration: 'none' }}>
@@ -173,36 +175,49 @@ const Home: React.FC = () => {
               color: 'white',
               border: 'none',
               padding: '12px 24px',
-              borderRadius: '2px',
+              borderRadius: '4px',
               cursor: 'pointer',
-              fontSize: '16px',
-              fontWeight: '600'
-            }}>
-              browse postings
+              fontSize: '15px',
+              fontWeight: '500',
+              transition: 'all 0.2s'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#5b21b6'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#4c1d95'}
+            >
+              Browse Jobs
             </button>
           </Link>
           <button 
             onClick={() => currentUser ? navigate('/post-job') : navigate('/login')}
             style={{
               backgroundColor: 'transparent',
-              color: '#4c1d95',
-              border: '2px solid #4c1d95',
-              padding: '10px 24px',
-              borderRadius: '2px',
+              color: '#ffffff',
+              border: '1px solid #333333',
+              padding: '12px 24px',
+              borderRadius: '4px',
               cursor: 'pointer',
-              fontSize: '16px',
-              fontWeight: '600'
+              fontSize: '15px',
+              fontWeight: '500',
+              transition: 'all 0.2s'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = '#4c1d95';
+              e.currentTarget.style.color = '#4c1d95';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = '#333333';
+              e.currentTarget.style.color = '#ffffff';
             }}
           >
-            post a job
+            Post Work
           </button>
         </div>
       </section>
 
       {/* Services Grid */}
       <section style={{ padding: '2rem' }}>
-        <h3 style={{ color: '#ffffff', fontSize: '2rem', fontWeight: '700', marginBottom: '2rem', textAlign: 'left' }}>
-          latest job postings
+        <h3 style={{ color: '#ffffff', fontSize: '1.5rem', fontWeight: '600', marginBottom: '1.5rem', textAlign: 'left' }}>
+          Open Jobs
         </h3>
         {loading ? (
           <p style={{ color: '#888888', textAlign: 'center' }}>loading...</p>

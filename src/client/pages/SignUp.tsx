@@ -8,6 +8,7 @@ const SignUp: React.FC = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [walletAddress, setWalletAddress] = useState('');
+  const [walletLabel, setWalletLabel] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -35,10 +36,14 @@ const SignUp: React.FC = () => {
       return setError('Wallet address is required');
     }
 
+    if (!walletLabel || walletLabel.trim() === '') {
+      return setError('Wallet label is required');
+    }
+
     try {
       setError('');
       setLoading(true);
-      await signup(email, password, name, walletAddress);
+      await signup(email, password, name, walletAddress, walletLabel);
       navigate('/home');
     } catch (error: any) {
       setError('Failed to create an account');
@@ -199,6 +204,33 @@ const SignUp: React.FC = () => {
               onChange={(e) => setWalletAddress(e.target.value)}
               required
               placeholder="GBVRK6RFX..."
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                border: '1px solid #333333',
+                borderRadius: '2px',
+                fontSize: '16px',
+                backgroundColor: '#1a1a1a',
+                color: '#ffffff',
+                boxSizing: 'border-box',
+                outline: 'none',
+                transition: 'border-color 0.2s'
+              }}
+              onFocus={(e) => e.target.style.borderColor = '#4c1d95'}
+              onBlur={(e) => e.target.style.borderColor = '#333333'}
+            />
+          </div>
+
+          <div style={{ marginBottom: '1.5rem' }}>
+            <label style={{ display: 'block', marginBottom: '0.5rem', color: '#cccccc', fontSize: '14px', fontWeight: '700' }}>
+              wallet label
+            </label>
+            <input
+              type="text"
+              value={walletLabel}
+              onChange={(e) => setWalletLabel(e.target.value)}
+              placeholder="My Main Wallet"
+              required
               style={{
                 width: '100%',
                 padding: '12px 16px',

@@ -47,7 +47,7 @@ const NoAccess: React.FC = () => {
           <button
             onClick={() => navigate('/login')}
             style={{
-              backgroundColor: '#007bff',
+              backgroundColor: '#4c1d95',
               color: 'white',
               border: 'none',
               padding: '12px 24px',
@@ -56,10 +56,10 @@ const NoAccess: React.FC = () => {
               fontSize: '16px',
               fontWeight: '800',
               transition: 'background-color 0.2s',
-              boxShadow: '0 4px 12px rgba(0, 123, 255, 0.3)'
+              boxShadow: '0 4px 12px rgba(76, 29, 149, 0.3)'
             }}
-            onMouseEnter={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#0056b3'}
-            onMouseLeave={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#007bff'}
+            onMouseEnter={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#5b21b6'}
+            onMouseLeave={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#4c1d95'}
           >
             Log In
           </button>
@@ -67,7 +67,7 @@ const NoAccess: React.FC = () => {
           <button
             onClick={() => navigate('/signup')}
             style={{
-              backgroundColor: '#28a745',
+              backgroundColor: '#4c1d95',
               color: 'white',
               border: 'none',
               padding: '12px 24px',
@@ -76,10 +76,10 @@ const NoAccess: React.FC = () => {
               fontSize: '16px',
               fontWeight: '800',
               transition: 'background-color 0.2s',
-              boxShadow: '0 4px 12px rgba(40, 167, 69, 0.3)'
+              boxShadow: '0 4px 12px rgba(76, 29, 149, 0.3)'
             }}
-            onMouseEnter={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#1e7e34'}
-            onMouseLeave={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#28a745'}
+            onMouseEnter={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#5b21b6'}
+            onMouseLeave={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#4c1d95'}
           >
             Sign Up
           </button>

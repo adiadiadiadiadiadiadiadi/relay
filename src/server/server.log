@@ -1,0 +1,105 @@
+
+> stellar-server@1.0.0 start
+> node server.js
+
+Server running on http://localhost:3002
+Environment: development
+📥 REQUEST: POST /jobs/5c559a17-75a1-4883-85e9-5c0acb63b59f/approve
+=== APPROVE ENDPOINT CALLED ===
+Job ID: 5c559a17-75a1-4883-85e9-5c0acb63b59f
+Approver: undefined
+Jobs query result: 1
+Job status: completed
+Job escrow_id: null
+Job employer_id: 22
+Job employee_id: 21
+Work not submitted yet
+📥 REQUEST: GET /jobs
+📥 REQUEST: GET /jobs
+📥 REQUEST: POST /auth/login
+📥 REQUEST: GET /jobs
+📥 REQUEST: GET /users/21/notifications
+📥 REQUEST: GET /jobs
+📥 REQUEST: GET /users/21/notifications
+📥 REQUEST: GET /users/21/notifications
+📥 REQUEST: GET /jobs
+📥 REQUEST: GET /users/21/average-rating
+📥 REQUEST: GET /users
+📥 REQUEST: GET /users/21/notifications
+📥 REQUEST: GET /jobs
+=== Querying User Average Rating from Contract ===
+User address: GD7HRAJM2U3HJY6PS7NNAF473MKJJXRFXJWJUX3N7SSQFANN4L42WKAG
+📥 REQUEST: GET /users/21/average-rating
+📥 REQUEST: GET /users
+📥 REQUEST: GET /users/21/reviews
+=== Querying User Average Rating from Contract ===
+User address: GD7HRAJM2U3HJY6PS7NNAF473MKJJXRFXJWJUX3N7SSQFANN4L42WKAG
+=== Querying User Reviews from Contract ===
+User address: GD7HRAJM2U3HJY6PS7NNAF473MKJJXRFXJWJUX3N7SSQFANN4L42WKAG
+📥 REQUEST: GET /users/21/reviews
+=== Querying User Reviews from Contract ===
+User address: GD7HRAJM2U3HJY6PS7NNAF473MKJJXRFXJWJUX3N7SSQFANN4L42WKAG
+📥 REQUEST: GET /users/21/notifications
+📥 REQUEST: GET /jobs
+📥 REQUEST: GET /users/21/notifications
+📥 REQUEST: GET /jobs
+📥 REQUEST: POST /jobs/45bd0f5f-5b2e-44c5-87f5-b9dcbfafc675/submit
+📥 REQUEST: GET /jobs
+📥 REQUEST: GET /jobs
+📥 REQUEST: POST /auth/login
+📥 REQUEST: GET /jobs
+📥 REQUEST: GET /users/22/notifications
+📥 REQUEST: GET /jobs
+📥 REQUEST: GET /users/22/notifications
+📥 REQUEST: GET /users/22/notifications
+📥 REQUEST: GET /jobs
+📥 REQUEST: GET /users
+📥 REQUEST: GET /users/22/average-rating
+📥 REQUEST: GET /users/22/notifications
+📥 REQUEST: GET /jobs
+=== Querying User Average Rating from Contract ===
+User address: GA5JKIO5RXB3ZJDRQYFNKTOSTSQ3S7VBRRZVFCE5MJFVGXOX6YEK2IEQ
+📥 REQUEST: GET /users
+📥 REQUEST: GET /users/22/reviews
+📥 REQUEST: GET /users/22/average-rating
+=== Querying User Reviews from Contract ===
+User address: GA5JKIO5RXB3ZJDRQYFNKTOSTSQ3S7VBRRZVFCE5MJFVGXOX6YEK2IEQ
+=== Querying User Average Rating from Contract ===
+User address: GA5JKIO5RXB3ZJDRQYFNKTOSTSQ3S7VBRRZVFCE5MJFVGXOX6YEK2IEQ
+📥 REQUEST: GET /users/22/reviews
+=== Querying User Reviews from Contract ===
+User address: GA5JKIO5RXB3ZJDRQYFNKTOSTSQ3S7VBRRZVFCE5MJFVGXOX6YEK2IEQ
+📥 REQUEST: GET /users/22/notifications
+📥 REQUEST: GET /jobs
+📥 REQUEST: GET /users/22/notifications
+📥 REQUEST: GET /jobs
+📥 REQUEST: POST /jobs/45bd0f5f-5b2e-44c5-87f5-b9dcbfafc675/approve
+=== APPROVE ENDPOINT CALLED ===
+Job ID: 45bd0f5f-5b2e-44c5-87f5-b9dcbfafc675
+Approver: undefined
+Jobs query result: 1
+Job status: submitted
+Job escrow_id: null
+Job employer_id: 22
+Job employee_id: 21
+Proceeding with blockchain payment
+Employer wallets: 1
+Employee wallets: 1
+Employer wallet: GA5JKIO5RXB3ZJDRQYFNKTOSTSQ3S7VBRRZVFCE5MJFVGXOX6YEK2IEQ
+Employee wallet: GD7HRAJM2U3HJY6PS7NNAF473MKJJXRFXJWJUX3N7SSQFANN4L42WKAG
+=== PROCESSING PAYMENT APPROVAL ===
+⚠️ No payment reservation found - generating new payment
+=== GENERATING APPROVAL PAYMENT ===
+Job ID: 45bd0f5f-5b2e-44c5-87f5-b9dcbfafc675
+Employer: GA5JKIO5RXB3ZJDRQYFNKTOSTSQ3S7VBRRZVFCE5MJFVGXOX6YEK2IEQ
+Freelancer: GD7HRAJM2U3HJY6PS7NNAF473MKJJXRFXJWJUX3N7SSQFANN4L42WKAG
+Amount: 1.000000
+=== GENERATING PAYMENT XDR ===
+From: GA5JKIO5RXB3ZJDRQYFNKTOSTSQ3S7VBRRZVFCE5MJFVGXOX6YEK2IEQ
+To: GD7HRAJM2U3HJY6PS7NNAF473MKJJXRFXJWJUX3N7SSQFANN4L42WKAG
+Amount: 1.000000
+✅ Payment XDR generated successfully
+XDR length: 236
+✅ Payment XDR ready for signing
+Payment ready for signing with Freighter
+=== PAYMENT READY FOR SIGNING ===

@@ -5,6 +5,7 @@ import { convertAndFormatCurrency, Currency } from '../utils/currencyConversion'
 import { useNavigate, Link } from 'react-router-dom';
 import Header from '../components/Header';
 import ConfirmationAlert from '../components/ConfirmationAlert';
+import DeleteConfirmationAlert from '../components/DeleteConfirmationAlert';
 
 interface Job {
   id: string;
@@ -16,6 +17,7 @@ interface Job {
   status: string;
   created_at: string;
   employer_id: string;
+  employee_id?: string;
   employer_name?: string;
   escrow_id?: string;
 }
@@ -29,6 +31,8 @@ const AllPostings: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [jobToDelete, setJobToDelete] = useState<Job | null>(null);
 
   useEffect(() => {
     const fetchJobs = async () => {
@@ -36,7 +40,16 @@ const AllPostings: React.FC = () => {
         const response = await fetch('http://localhost:3002/api/jobs');
         if (response.ok) {
           const data = await response.json();
-          setJobs(data);
+          
+          // If user is logged in, filter out their own jobs
+          let filteredJobs = data;
+          if (currentUser) {
+            filteredJobs = data.filter((job: Job) => 
+              job.employer_id !== currentUser.id.toString()
+            );
+          }
+          
+          setJobs(filteredJobs);
         } else {
           console.error('Failed to fetch jobs');
         }
@@ -48,7 +61,7 @@ const AllPostings: React.FC = () => {
     };
 
     fetchJobs();
-  }, []);
+  }, [currentUser]);
 
   const handleClaimClick = (e: React.MouseEvent, job: Job) => {
     e.preventDefault();
@@ -64,7 +77,7 @@ const AllPostings: React.FC = () => {
     setShowConfirmation(true);
   };
 
-  const handleConfirmClaim = async () => {
+  const handleConfirmClaim = async (selectedWallet?: any) => {
     if (selectedJob) {
       try {
         // Optimistically update the UI immediately
@@ -96,7 +109,16 @@ const AllPostings: React.FC = () => {
               const response = await fetch('http://localhost:3002/api/jobs');
               if (response.ok) {
                 const data = await response.json();
-                setJobs(data);
+                
+                // If user is logged in, filter out their own jobs
+                let filteredJobs = data;
+                if (currentUser) {
+                  filteredJobs = data.filter((job: Job) => 
+                    job.employer_id !== currentUser.id.toString()
+                  );
+                }
+                
+                setJobs(filteredJobs);
               } else {
                 console.error('Failed to fetch jobs');
               }
@@ -126,7 +148,16 @@ const AllPostings: React.FC = () => {
             const response = await fetch('http://localhost:3002/api/jobs');
             if (response.ok) {
               const data = await response.json();
-              setJobs(data);
+              
+              // If user is logged in, filter out their own jobs
+              let filteredJobs = data;
+              if (currentUser) {
+                filteredJobs = data.filter((job: Job) => 
+                  job.employer_id !== currentUser.id.toString()
+                );
+              }
+              
+              setJobs(filteredJobs);
             } else {
               console.error('Failed to fetch jobs');
             }
@@ -160,6 +191,84 @@ const AllPostings: React.FC = () => {
   const handleCloseConfirmation = () => {
     setShowConfirmation(false);
     setSelectedJob(null);
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent, job: Job) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    setJobToDelete(job);
+    setShowDeleteConfirmation(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!jobToDelete) return;
+    
+    try {
+      // Optimistically remove from UI
+      setJobs(prevJobs => prevJobs.filter(j => j.id !== jobToDelete.id));
+      
+      // Delete from server
+      const response = await fetch(`http://localhost:3002/api/jobs/${jobToDelete.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          employer_id: currentUser?.id
+        })
+      });
+
+      if (!response.ok) {
+        console.error('Failed to delete job');
+        // If failed, refetch to restore state
+        const fetchJobs = async () => {
+          try {
+            const response = await fetch('http://localhost:3002/api/jobs');
+            if (response.ok) {
+              const data = await response.json();
+              
+              // If user is logged in, filter out their own jobs
+              let filteredJobs = data;
+              if (currentUser) {
+                filteredJobs = data.filter((job: Job) => 
+                  job.employer_id !== currentUser.id.toString()
+                );
+              }
+              
+              setJobs(filteredJobs);
+            }
+          } catch (error) {
+            console.error('Error fetching jobs:', error);
+          }
+        };
+        fetchJobs();
+      }
+    } catch (error) {
+      console.error('Error deleting job:', error);
+      // Refetch on error
+      const fetchJobs = async () => {
+        try {
+          const response = await fetch('http://localhost:3002/api/jobs');
+          if (response.ok) {
+            const data = await response.json();
+            
+            // If user is logged in, filter out their own jobs
+            let filteredJobs = data;
+            if (currentUser) {
+              filteredJobs = data.filter((job: Job) => 
+                job.employer_id !== currentUser.id.toString()
+              );
+            }
+            
+            setJobs(filteredJobs);
+          }
+        } catch (error) {
+          console.error('Error fetching jobs:', error);
+        }
+      };
+      fetchJobs();
+    }
   };
 
   // Filter jobs based on search query
@@ -363,8 +472,38 @@ const AllPostings: React.FC = () => {
                   </div>
                 </Link>
                 
-                {/* Claim Button - Only show for open jobs */}
-                {job.status === 'open' && (
+                {/* Delete Button - Show for job owner on open jobs */}
+                {job.status === 'open' && String(job.employer_id) === String(currentUser?.id) && (
+                  <button
+                    onClick={(e) => handleDeleteClick(e, job)}
+                    style={{
+                      position: 'absolute',
+                      top: '1rem',
+                      right: '1rem',
+                      backgroundColor: '#dc2626',
+                      color: '#ffffff',
+                      border: 'none',
+                      borderRadius: '6px',
+                      padding: '8px 16px',
+                      fontSize: '12px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      transition: 'background-color 0.2s',
+                      zIndex: 10
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = '#b91c1c';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = '#dc2626';
+                    }}
+                  >
+                    delete
+                  </button>
+                )}
+
+                {/* Claim Button - Only show for open jobs that aren't yours */}
+                {job.status === 'open' && String(job.employer_id) !== String(currentUser?.id) && (
                   <button
                     onClick={(e) => handleClaimClick(e, job)}
                     style={{
@@ -407,6 +546,21 @@ const AllPostings: React.FC = () => {
           onConfirm={handleConfirmClaim}
           jobTitle={selectedJob.title}
           jobPrice={convertAndFormatCurrency(selectedJob.price, selectedJob.currency as Currency, userCurrency)}
+        />
+      )}
+
+      {/* Delete Confirmation Alert */}
+      {jobToDelete && (
+        <DeleteConfirmationAlert
+          isOpen={showDeleteConfirmation}
+          onClose={() => {
+            setShowDeleteConfirmation(false);
+            setJobToDelete(null);
+          }}
+          onConfirm={handleConfirmDelete}
+          title="delete job"
+          message="are you sure you want to delete this job?"
+          itemName={jobToDelete.title}
         />
       )}
     </div>

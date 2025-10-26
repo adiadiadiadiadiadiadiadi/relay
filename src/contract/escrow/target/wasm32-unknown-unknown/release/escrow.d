@@ -1,0 +1,1 @@
+/Users/adityarvij/Desktop/hackathons/stellar-proj/src/contract/escrow/target/wasm32-unknown-unknown/release/escrow.wasm: /Users/adityarvij/Desktop/hackathons/stellar-proj/src/contract/escrow/src/lib.rs

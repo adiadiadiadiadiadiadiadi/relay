@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { Currency } from '../utils/currencyConversion';
+import Logo from './Logo';
 
 const Header: React.FC = () => {
   const { currentUser, logout } = useAuth();
@@ -187,10 +188,8 @@ const Header: React.FC = () => {
       alignItems: 'center'
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
-        <Link to="/" style={{ textDecoration: 'none' }}>
-          <h1 style={{ color: '#ffffff', fontSize: '1.5rem', fontWeight: '800', margin: 0 }}>
-            stellar marketplace
-          </h1>
+        <Link to="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
+          <Logo />
         </Link>
         
         {/* Navigation Links */}

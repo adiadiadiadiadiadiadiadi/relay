@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useCurrency } from '../contexts/CurrencyContext';
+import { useToast } from '../contexts/ToastContext';
 import { Currency } from '../utils/currencyConversion';
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
@@ -8,6 +9,7 @@ import Header from '../components/Header';
 const PostJob: React.FC = () => {
   const { currentUser } = useAuth();
   const { userCurrency, setUserCurrency } = useCurrency();
+  const { showToast } = useToast();
   const navigate = useNavigate();
   
   const [title, setTitle] = useState('');
@@ -17,6 +19,10 @@ const PostJob: React.FC = () => {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
   const [showFormCurrencyDropdown, setShowFormCurrencyDropdown] = useState(false);
+  const [showWalletDropdown, setShowWalletDropdown] = useState(false);
+  const [wallets, setWallets] = useState<{id: string, address: string, label: string}[]>([]);
+  const [selectedWalletId, setSelectedWalletId] = useState<string>('');
+  const [loadingWallets, setLoadingWallets] = useState(false);
   
   const availableTags = ['development', 'design', 'marketing', 'writing', 'blockchain', 'video', 'music', 'photography', 'consulting'];
   const currencies: Currency[] = ['USDC', 'EURC', 'GBPC', 'CHFC'];
@@ -25,6 +31,43 @@ const PostJob: React.FC = () => {
   useEffect(() => {
     setCurrency(userCurrency);
   }, [userCurrency]);
+
+  const fetchWallets = useCallback(async () => {
+    if (!currentUser) return;
+    
+    try {
+      setLoadingWallets(true);
+      console.log('Fetching wallets for user:', currentUser.id);
+      const response = await fetch(`http://localhost:3002/api/users/${currentUser.id}/wallets`);
+      console.log('Wallets response status:', response.status);
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Wallets data:', data);
+        setWallets(data);
+        // Auto-select first wallet if available
+        if (data.length > 0) {
+          setSelectedWalletId(data[0].id);
+          console.log('Selected wallet ID:', data[0].id);
+        } else {
+          console.warn('No wallets found for user');
+        }
+      } else {
+        const errorData = await response.json();
+        console.error('Failed to fetch wallets:', errorData);
+      }
+    } catch (error) {
+      console.error('Error fetching wallets:', error);
+    } finally {
+      setLoadingWallets(false);
+    }
+  }, [currentUser]);
+
+  // Fetch user wallets
+  useEffect(() => {
+    if (currentUser) {
+      fetchWallets();
+    }
+  }, [currentUser, fetchWallets]);
 
 
 
@@ -54,13 +97,18 @@ const PostJob: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (selectedTags.length === 0) {
-      alert('Please select at least one tag');
+      showToast('Please select at least one tag', 'error');
       return;
     }
 
     if (!currentUser) {
-      alert('You must be logged in to post a job');
+      showToast('You must be logged in to post a job', 'error');
       navigate('/login');
+      return;
+    }
+
+    if (!selectedWalletId) {
+      showToast('Please select a wallet to use for this job', 'error');
       return;
     }
 
@@ -71,13 +119,13 @@ const PostJob: React.FC = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          employer_id: currentUser.id,
           title,
           description,
           price: budget,
           currency,
           tags: selectedTags,
-          userId: currentUser.id,
-          employerName: currentUser.name || currentUser.email
+          name: currentUser.name || currentUser.email
         }),
       });
 
@@ -89,12 +137,15 @@ const PostJob: React.FC = () => {
       const data = await response.json();
       console.log('Job posted successfully:', data);
       
+      // Show success message
+      showToast('Job posted successfully!', 'success');
+      
       // Redirect to employer dashboard
       navigate(`/employer/${currentUser.id}`);
       
     } catch (error: any) {
       console.error('Error posting job:', error);
-      alert(error.message || 'Failed to post job. Please try again.');
+      showToast(error.message || 'Failed to post job. Please try again.', 'error');
     }
   };
 
@@ -166,11 +217,11 @@ const PostJob: React.FC = () => {
                 onClick={() => setShowFormCurrencyDropdown(!showFormCurrencyDropdown)}
                 style={{
                   width: '100%',
-                  backgroundColor: '#0a0a0a',
+                  backgroundColor: '#1a1a1a',
                   border: '1px solid #333333',
                   color: '#ffffff',
                   padding: '12px',
-                  borderRadius: '2px',
+                  borderRadius: '4px',
                   cursor: 'pointer',
                   fontSize: '14px',
                   fontWeight: '600',
@@ -189,10 +240,11 @@ const PostJob: React.FC = () => {
                   left: 0,
                   right: 0,
                   marginTop: '0.25rem',
-                  backgroundColor: '#0a0a0a',
+                  backgroundColor: '#1a1a1a',
                   border: '1px solid #333333',
                   borderRadius: '4px',
-                  zIndex: 1000
+                  zIndex: 1000,
+                  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)'
                 }}>
                   {currencies.map(curr => (
                     <button
@@ -205,24 +257,24 @@ const PostJob: React.FC = () => {
                       }}
                       style={{
                         width: '100%',
-                        padding: '12px',
-                        backgroundColor: curr === currency ? '#4c1d95' : '#0a0a0a',
+                        padding: '8px 12px',
+                        backgroundColor: curr === currency ? '#4c1d95' : 'transparent',
                         border: 'none',
                         color: '#ffffff',
                         textAlign: 'left',
                         cursor: 'pointer',
-                        fontSize: '14px',
+                        fontSize: '12px',
                         fontWeight: '600',
                         borderBottom: '1px solid #333333'
                       }}
                       onMouseEnter={(e) => {
                         if (curr !== currency) {
-                          e.currentTarget.style.backgroundColor = '#1a1a1a';
+                          e.currentTarget.style.backgroundColor = '#2a2a2a';
                         }
                       }}
                       onMouseLeave={(e) => {
                         if (curr !== currency) {
-                          e.currentTarget.style.backgroundColor = '#0a0a0a';
+                          e.currentTarget.style.backgroundColor = 'transparent';
                         }
                       }}
                     >
@@ -232,6 +284,116 @@ const PostJob: React.FC = () => {
                 </div>
               )}
             </div>
+          </div>
+
+          <div style={{ marginBottom: '1.5rem' }}>
+            <label style={{ 
+              display: 'block', 
+              color: '#cccccc', 
+              fontSize: '14px', 
+              fontWeight: '600',
+              marginBottom: '0.5rem'
+            }}>
+              select wallet
+            </label>
+            {loadingWallets ? (
+              <div style={{
+                padding: '12px',
+                backgroundColor: '#0a0a0a',
+                border: '1px solid #333333',
+                borderRadius: '2px',
+                color: '#888888',
+                fontSize: '14px'
+              }}>
+                loading wallets...
+              </div>
+            ) : wallets.length === 0 ? (
+              <div style={{
+                padding: '12px',
+                backgroundColor: '#0a0a0a',
+                border: '1px solid #333333',
+                borderRadius: '2px',
+                color: '#888888',
+                fontSize: '14px'
+              }}>
+                no wallets found. please add a wallet first.
+              </div>
+            ) : (
+              <div style={{ position: 'relative' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowWalletDropdown(!showWalletDropdown)}
+                  style={{
+                    width: '100%',
+                    backgroundColor: '#1a1a1a',
+                    border: '1px solid #333333',
+                    color: '#ffffff',
+                    padding: '12px',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between'
+                  }}
+                >
+                  <span>
+                    {wallets.find(w => w.id === selectedWalletId)?.label || 'Select wallet'} - {wallets.find(w => w.id === selectedWalletId)?.address.substring(0, 8) || ''}...
+                  </span>
+                  <span style={{ fontSize: '10px' }}>▼</span>
+                </button>
+                {showWalletDropdown && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    right: 0,
+                    marginTop: '0.25rem',
+                    backgroundColor: '#1a1a1a',
+                    border: '1px solid #333333',
+                    borderRadius: '4px',
+                    zIndex: 1000,
+                    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)'
+                  }}>
+                    {wallets.map(wallet => (
+                      <button
+                        key={wallet.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedWalletId(wallet.id);
+                          setShowWalletDropdown(false);
+                        }}
+                        style={{
+                          width: '100%',
+                          padding: '8px 12px',
+                          backgroundColor: wallet.id === selectedWalletId ? '#4c1d95' : 'transparent',
+                          border: 'none',
+                          color: '#ffffff',
+                          textAlign: 'left',
+                          cursor: 'pointer',
+                          fontSize: '12px',
+                          fontWeight: '600',
+                          borderBottom: '1px solid #333333'
+                        }}
+                        onMouseEnter={(e) => {
+                          if (wallet.id !== selectedWalletId) {
+                            e.currentTarget.style.backgroundColor = '#2a2a2a';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (wallet.id !== selectedWalletId) {
+                            e.currentTarget.style.backgroundColor = 'transparent';
+                          }
+                        }}
+                      >
+                        {wallet.label} - {wallet.address.substring(0, 8)}...
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div style={{ marginBottom: '1.5rem' }}>
