@@ -9,6 +9,19 @@
 # testing
 /coverage
 
+# Build output
+/target/
+
+# Rust tooling
+Cargo.lock        # (Optional — keep if you want reproducible builds for binaries)
+**/*.rs.bk        # Backup files created by some editors
+
+# Generated WASM artifacts (Soroban contracts)
+**/*.wasm
+**/wasm-opt*
+**/*.wasm.d
+**/*.wasm.map
+
 # production
 /build
 
