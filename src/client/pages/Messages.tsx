@@ -1,75 +1,45 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import Header from '../components/Header';
 
 interface Message {
   id: string;
-  sender: string;
+  sender_id: number;
   content: string;
-  timestamp: string;
+  created_at: string;
+  sender_name: string;
   isFromUser: boolean;
 }
 
 interface Conversation {
   id: string;
-  contactName: string;
-  contactEmail: string;
-  lastMessage: string;
-  lastMessageTime: string;
-  unreadCount: number;
-  jobTitle: string;
+  contact_name: string;
+  contact_email: string;
+  contact_id: number;
+  last_message: string;
+  last_message_time: string;
+  job_title: string;
+  recipient1: number;
+  recipient2: number;
 }
 
 const Messages: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { currentUser } = useAuth();
-  const [selectedConversation, setSelectedConversation] = useState<string>('1');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [selectedConversation, setSelectedConversation] = useState<string>('');
   const [showNewMessage, setShowNewMessage] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [conversations, setConversations] = useState<Conversation[]>([
-    {
-      id: '1',
-      contactName: 'alex_codes',
-      contactEmail: 'alex@example.com',
-      lastMessage: 'Great! We can start tomorrow. I\'ll send you the project requirements and design files.',
-      lastMessageTime: '30 minutes ago',
-      unreadCount: 0,
-      jobTitle: 'web development project'
-    },
-    {
-      id: '2',
-      contactName: 'design_pro',
-      contactEmail: 'design@example.com',
-      lastMessage: 'The mockups are ready for review. Let me know what you think!',
-      lastMessageTime: '2 hours ago',
-      unreadCount: 2,
-      jobTitle: 'ui/ux design'
-    },
-    {
-      id: '3',
-      contactName: 'blockchain_dev',
-      contactEmail: 'blockchain@example.com',
-      lastMessage: 'Smart contract is deployed on testnet. Ready for testing.',
-      lastMessageTime: '1 day ago',
-      unreadCount: 0,
-      jobTitle: 'smart contract development'
-    }
-  ]);
-
-  // Mock users data
-  const allUsers = [
-    { id: '1', name: 'alex_codes', email: 'alex@example.com', avatar: 'A' },
-    { id: '2', name: 'design_pro', email: 'design@example.com', avatar: 'D' },
-    { id: '3', name: 'blockchain_dev', email: 'blockchain@example.com', avatar: 'B' },
-    { id: '4', name: 'marketing_guru', email: 'marketing@example.com', avatar: 'M' },
-    { id: '5', name: 'app_builder', email: 'app@example.com', avatar: 'A' },
-    { id: '6', name: 'brand_maker', email: 'brand@example.com', avatar: 'B' },
-    { id: '7', name: 'seo_expert', email: 'seo@example.com', avatar: 'S' },
-    { id: '8', name: 'video_master', email: 'video@example.com', avatar: 'V' }
-  ];
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [showConversationsList, setShowConversationsList] = useState(true);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [allUsers, setAllUsers] = useState<any[]>([]);
 
   // Get current user's display name
   const getCurrentUserName = () => {
@@ -77,86 +47,124 @@ const Messages: React.FC = () => {
     return currentUser.email.split('@')[0];
   };
 
-  const [conversationMessages, setConversationMessages] = useState<Record<string, Message[]>>({
-    '1': [
-      {
-        id: '1',
-        sender: 'alex_codes',
-        content: 'Hi! I saw you claimed my web development job. I\'m excited to work with you on this project.',
-        timestamp: '2 hours ago',
-        isFromUser: false
-      },
-      {
-        id: '2',
-        sender: 'you',
-        content: 'Thanks! I\'m looking forward to getting started. When would you like to begin?',
-        timestamp: '1 hour ago',
-        isFromUser: true
-      },
-      {
-        id: '3',
-        sender: 'alex_codes',
-        content: 'Great! We can start tomorrow. I\'ll send you the project requirements and design files.',
-        timestamp: '30 minutes ago',
-        isFromUser: false
+  // API functions
+  const fetchConversations = async () => {
+    if (!currentUser?.id) return;
+    
+    try {
+      const response = await fetch(`http://localhost:3002/api/conversations/${currentUser.id}`);
+      if (response.ok) {
+        const data = await response.json();
+        setConversations(data);
       }
-    ],
-    '2': [
-      {
-        id: '4',
-        sender: 'design_pro',
-        content: 'Hi! I\'m working on the UI mockups for your project.',
-        timestamp: '3 hours ago',
-        isFromUser: false
-      },
-      {
-        id: '5',
-        sender: 'you',
-        content: 'Perfect! Looking forward to seeing the designs.',
-        timestamp: '2.5 hours ago',
-        isFromUser: true
-      },
-      {
-        id: '6',
-        sender: 'design_pro',
-        content: 'The mockups are ready for review. Let me know what you think!',
-        timestamp: '2 hours ago',
-        isFromUser: false
-      }
-    ],
-    '3': [
-      {
-        id: '7',
-        sender: 'blockchain_dev',
-        content: 'Smart contract is deployed on testnet. Ready for testing.',
-        timestamp: '1 day ago',
-        isFromUser: false
-      }
-    ]
-  });
+    } catch (error) {
+      console.error('Error fetching conversations:', error);
+    }
+  };
 
-  const [messages, setMessages] = useState<Message[]>(conversationMessages[selectedConversation] || []);
-  const [newMessage, setNewMessage] = useState('');
+  const fetchMessages = async (conversationId: string) => {
+    try {
+      const response = await fetch(`http://localhost:3002/api/conversations/${conversationId}/messages`);
+      if (response.ok) {
+        const data = await response.json();
+        const messagesWithUserFlag = data.map((msg: any) => ({
+          ...msg,
+          isFromUser: msg.sender_id === currentUser?.id
+        }));
+        setMessages(messagesWithUserFlag);
+      }
+    } catch (error) {
+      console.error('Error fetching messages:', error);
+    }
+  };
+
+  const fetchUsers = async () => {
+    try {
+      const response = await fetch('http://localhost:3002/api/users');
+      if (response.ok) {
+        const data = await response.json();
+        setAllUsers(data);
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    }
+  };
+
+  const sendMessage = async (conversationId: string, content: string) => {
+    if (!currentUser?.id) return;
+    
+    try {
+      const response = await fetch(`http://localhost:3002/api/conversations/${conversationId}/messages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sender_id: currentUser.id,
+          content: content
+        })
+      });
+      
+      if (response.ok) {
+        const newMessage = await response.json();
+        const messageWithUserFlag = {
+          ...newMessage,
+          isFromUser: true
+        };
+        setMessages(prev => [...prev, messageWithUserFlag]);
+        // Refresh conversations to update last message
+        fetchConversations();
+      }
+    } catch (error) {
+      console.error('Error sending message:', error);
+    }
+  };
+
+  // Auto-scroll to bottom of messages
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  // Load data on component mount
+  useEffect(() => {
+    if (currentUser?.id) {
+      Promise.all([fetchConversations(), fetchUsers()]).then(() => {
+        setLoading(false);
+      });
+    }
+  }, [currentUser?.id]);
+
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  // Handle window resize for mobile responsiveness
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
-    if (newMessage.trim()) {
-      const message: Message = {
-        id: Date.now().toString(),
-        sender: 'you',
-        content: newMessage.trim(),
-        timestamp: 'now',
-        isFromUser: true
-      };
-      setMessages(prev => [...prev, message]);
+    if (newMessage.trim() && selectedConversation) {
+      sendMessage(selectedConversation, newMessage.trim());
       setNewMessage('');
     }
   };
 
   const handleConversationSelect = (conversationId: string) => {
     setSelectedConversation(conversationId);
-    setMessages(conversationMessages[conversationId] || []);
+    fetchMessages(conversationId);
     setShowNewMessage(false);
+    // On mobile, hide conversations list when selecting a conversation
+    if (isMobile) {
+      setShowConversationsList(false);
+    }
   };
 
   const handleSearch = (query: string) => {
@@ -172,35 +180,38 @@ const Messages: React.FC = () => {
     }
   };
 
-  const handleStartConversation = (user: any) => {
+  const handleStartConversation = async (user: any) => {
+    if (!currentUser?.id) return;
+    
     // Check if conversation already exists
-    const existingConversation = conversations.find(c => c.contactName === user.name);
+    const existingConversation = conversations.find(c => c.contact_id === user.id);
     if (existingConversation) {
       setSelectedConversation(existingConversation.id);
-      setMessages(conversationMessages[existingConversation.id] || []);
+      fetchMessages(existingConversation.id);
     } else {
       // Create new conversation
-      const newConversationId = Date.now().toString();
-      const newConversation: Conversation = {
-        id: newConversationId,
-        contactName: user.name,
-        contactEmail: user.email,
-        lastMessage: 'Conversation started',
-        lastMessageTime: 'now',
-        unreadCount: 0,
-        jobTitle: 'new conversation'
-      };
-      
-      // Add to conversations list
-      setConversations(prev => [newConversation, ...prev]);
-      
-      // Initialize empty messages for new conversation
-      setConversationMessages(prev => ({
-        ...prev,
-        [newConversationId]: []
-      }));
-      setMessages([]);
-      setSelectedConversation(newConversationId);
+      try {
+        const response = await fetch('http://localhost:3002/api/conversations', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            recipient1: currentUser.id,
+            recipient2: user.id
+          })
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setSelectedConversation(data.conversation_id);
+          setMessages([]);
+          // Refresh conversations list
+          fetchConversations();
+        }
+      } catch (error) {
+        console.error('Error creating conversation:', error);
+      }
     }
     
     setShowNewMessage(false);
@@ -208,110 +219,103 @@ const Messages: React.FC = () => {
     setSearchResults([]);
   };
 
-  const handleViewProfile = (contactName: string) => {
-    // Find the user ID from the contact name
-    const user = allUsers.find(u => u.name === contactName);
-    if (user) {
-      navigate(`/employer/${user.id}`);
-    } else {
-      // Fallback to contact name if ID not found
-      navigate(`/employer/${contactName}`);
-    }
-  };
-
-  const handleDeleteEmptyConversation = (conversationId: string) => {
-    const messages = conversationMessages[conversationId] || [];
-    if (messages.length === 0 && selectedConversation !== conversationId) {
-      setConversations(prev => prev.filter(c => c.id !== conversationId));
-      setConversationMessages(prev => {
-        const newMessages = { ...prev };
-        delete newMessages[conversationId];
-        return newMessages;
-      });
-    }
+  const handleViewProfile = (contactId: number) => {
+    navigate(`/employer/${contactId}`);
   };
 
   const selectedConversationData = conversations.find(c => c.id === selectedConversation);
 
-  // Auto-delete empty conversations when not viewing them
+  // Handle opening a specific conversation from job claim
   useEffect(() => {
-    conversations.forEach(conversation => {
-      const messages = conversationMessages[conversation.id] || [];
-      if (messages.length === 0 && selectedConversation !== conversation.id) {
-        handleDeleteEmptyConversation(conversation.id);
-      }
-    });
-  }, [selectedConversation, conversations]);
-
-  // Handle starting conversation with job poster from claim confirmation
-  useEffect(() => {
-    if (location.state?.startConversationWith) {
+    if (location.state?.openConversationId) {
+      const conversationId = location.state.openConversationId;
+      setSelectedConversation(conversationId);
+      fetchMessages(conversationId);
+      
+      // Clear the navigation state
+      navigate('/messages', { replace: true });
+    } else if (location.state?.startConversationWith) {
       const { name, email, jobTitle } = location.state.startConversationWith;
       
       // Check if conversation already exists
-      const existingConversation = conversations.find(c => c.contactName === name);
+      const existingConversation = conversations.find(c => c.contact_name === name);
       
       if (existingConversation) {
         // Open existing conversation
         setSelectedConversation(existingConversation.id);
+        fetchMessages(existingConversation.id);
       } else {
-        // Create new conversation
-        const newConversationId = (conversations.length + 1).toString();
-        const newConversation: Conversation = {
-          id: newConversationId,
-          contactName: name,
-          contactEmail: email,
-          lastMessage: `Started conversation about: ${jobTitle}`,
-          lastMessageTime: 'now',
-          unreadCount: 0,
-          jobTitle: jobTitle
-        };
-        
-        setConversations(prev => [newConversation, ...prev]);
-        setSelectedConversation(newConversationId);
-        
-        // Add initial message
-        setConversationMessages(prev => ({
-          ...prev,
-          [newConversationId]: [{
-            id: '1',
-            sender: 'you',
-            content: `Hi! I'm interested in your job: ${jobTitle}`,
-            timestamp: 'now',
-            isFromUser: true
-          }]
-        }));
+        // Find user by name/email and create conversation
+        const user = allUsers.find(u => u.name === name || u.email === email);
+        if (user) {
+          handleStartConversation(user);
+        }
       }
       
       // Clear the navigation state
       navigate('/messages', { replace: true });
     }
-  }, [location.state, conversations, navigate]);
+  }, [location.state, conversations, allUsers, navigate]);
 
   return (
-    <div style={{ 
-      height: '100vh', 
-      backgroundColor: '#0a0a0a',
-      fontFamily: '"Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif',
-      display: 'flex',
-      flexDirection: 'column'
-    }}>
-      <Header />
+    <>
+      <style>
+        {`
+          .messages-container::-webkit-scrollbar {
+            width: 6px;
+          }
+          .messages-container::-webkit-scrollbar-track {
+            background: #1a1a1a;
+          }
+          .messages-container::-webkit-scrollbar-thumb {
+            background: #4c1d95;
+            border-radius: 3px;
+          }
+          .messages-container::-webkit-scrollbar-thumb:hover {
+            background: #5b21b6;
+          }
+          .conversations-list::-webkit-scrollbar {
+            width: 6px;
+          }
+          .conversations-list::-webkit-scrollbar-track {
+            background: #1a1a1a;
+          }
+          .conversations-list::-webkit-scrollbar-thumb {
+            background: #4c1d95;
+            border-radius: 3px;
+          }
+          .conversations-list::-webkit-scrollbar-thumb:hover {
+            background: #5b21b6;
+          }
+        `}
+      </style>
+      <div style={{ 
+        height: '100vh', 
+        backgroundColor: '#0a0a0a',
+        fontFamily: '"Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif',
+        display: 'flex',
+        flexDirection: 'column'
+      }}>
+        <Header />
 
       {/* Main Messages Layout - Full Screen */}
       <div style={{
         flex: 1,
         display: 'grid',
-        gridTemplateColumns: '350px 1fr',
+        gridTemplateColumns: isMobile ? '1fr' : '350px 1fr',
         backgroundColor: '#111111',
         borderTop: '1px solid #333333',
-        overflow: 'hidden'
+        overflow: 'hidden',
+        minHeight: 0
       }}>
           {/* Conversations List */}
           <div style={{
-            borderRight: '1px solid #333333',
-            display: 'flex',
-            flexDirection: 'column'
+            borderRight: isMobile ? 'none' : '1px solid #333333',
+            display: isMobile && !showConversationsList ? 'none' : 'flex',
+            flexDirection: 'column',
+            width: isMobile ? '100%' : 'auto',
+            height: '100%',
+            overflow: 'hidden'
           }}>
             <div style={{
               padding: '1rem',
@@ -404,7 +408,7 @@ const Messages: React.FC = () => {
                             fontWeight: '700',
                             color: '#ffffff'
                           }}>
-                            {user.avatar}
+                            {user.name.charAt(0).toUpperCase()}
                           </div>
                           <div>
                             <div style={{ color: '#ffffff', fontSize: '14px', fontWeight: '600' }}>
@@ -421,76 +425,90 @@ const Messages: React.FC = () => {
                 </div>
               )}
             </div>
-            <div style={{ flex: 1, overflowY: 'auto' }}>
-              {conversations.map(conversation => (
-                <div
-                  key={conversation.id}
-                  onClick={() => handleConversationSelect(conversation.id)}
-                  style={{
-                    padding: '1rem',
-                    borderBottom: '1px solid #333333',
-                    cursor: 'pointer',
-                    backgroundColor: selectedConversation === conversation.id ? '#1a1a1a' : 'transparent',
-                    transition: 'background-color 0.2s'
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleViewProfile(conversation.contactName);
-                      }}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        color: '#4c1d95',
-                        fontSize: '14px',
-                        fontWeight: '600',
-                        cursor: 'pointer',
-                        padding: 0,
-                        textDecoration: 'underline'
-                      }}
-                    >
-                      {conversation.contactName}
-                    </button>
-                    {conversation.unreadCount > 0 && (
-                      <div style={{
-                        backgroundColor: '#4c1d95',
-                        color: '#ffffff',
-                        fontSize: '12px',
-                        fontWeight: '600',
-                        padding: '2px 6px',
-                        borderRadius: '10px',
-                        minWidth: '18px',
-                        textAlign: 'center'
-                      }}>
-                        {conversation.unreadCount}
-                      </div>
-                    )}
-                  </div>
-                  <div style={{ color: '#888888', fontSize: '12px', marginBottom: '0.25rem' }}>
-                    {conversation.jobTitle}
-                  </div>
-                  <div style={{ 
-                    color: '#cccccc', 
-                    fontSize: '13px', 
-                    lineHeight: 1.3,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap'
-                  }}>
-                    {conversation.lastMessage}
-                  </div>
-                  <div style={{ color: '#666666', fontSize: '11px', marginTop: '0.25rem' }}>
-                    {conversation.lastMessageTime}
-                  </div>
+            <div className="conversations-list" style={{ 
+              flex: 1, 
+              overflowY: 'auto',
+              scrollBehavior: 'smooth',
+              height: '100%',
+              minHeight: 0
+            }}>
+              {loading ? (
+                <div style={{ 
+                  padding: '2rem', 
+                  textAlign: 'center', 
+                  color: '#888888' 
+                }}>
+                  Loading conversations...
                 </div>
-              ))}
+              ) : conversations.length === 0 ? (
+                <div style={{ 
+                  padding: '2rem', 
+                  textAlign: 'center', 
+                  color: '#888888' 
+                }}>
+                  No conversations yet
+                </div>
+              ) : (
+                conversations.map(conversation => (
+                  <div
+                    key={conversation.id}
+                    onClick={() => handleConversationSelect(conversation.id)}
+                    style={{
+                      padding: '1rem',
+                      borderBottom: '1px solid #333333',
+                      cursor: 'pointer',
+                      backgroundColor: selectedConversation === conversation.id ? '#1a1a1a' : 'transparent',
+                      transition: 'background-color 0.2s'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleViewProfile(conversation.contact_id);
+                        }}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#4c1d95',
+                          fontSize: '14px',
+                          fontWeight: '600',
+                          cursor: 'pointer',
+                          padding: 0,
+                          textDecoration: 'underline'
+                        }}
+                      >
+                        {conversation.contact_name}
+                      </button>
+                    </div>
+                    <div style={{ color: '#888888', fontSize: '12px', marginBottom: '0.25rem' }}>
+                      {conversation.job_title || 'General conversation'}
+                    </div>
+                    <div style={{ 
+                      color: '#cccccc', 
+                      fontSize: '13px', 
+                      lineHeight: 1.3,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {conversation.last_message || 'No messages yet'}
+                    </div>
+                    <div style={{ color: '#666666', fontSize: '11px', marginTop: '0.25rem' }}>
+                      {conversation.last_message_time ? new Date(conversation.last_message_time).toLocaleString() : 'Just now'}
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 
           {/* Current Conversation */}
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <div style={{ 
+            display: isMobile && showConversationsList ? 'none' : 'flex', 
+            flexDirection: 'column',
+            width: isMobile ? '100%' : 'auto'
+          }}>
             {selectedConversationData ? (
               <>
                 {/* Conversation Header */}
@@ -502,8 +520,25 @@ const Messages: React.FC = () => {
                   alignItems: 'center',
                   gap: '0.75rem'
                 }}>
+                  {isMobile && (
+                    <button
+                      onClick={() => setShowConversationsList(true)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        padding: '8px',
+                        marginRight: '0.5rem',
+                        color: '#cccccc'
+                      }}
+                    >
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M19 12H5M12 19l-7-7 7-7"/>
+                      </svg>
+                    </button>
+                  )}
                   <button
-                    onClick={() => handleViewProfile(selectedConversationData.contactName)}
+                    onClick={() => handleViewProfile(selectedConversationData.contact_id)}
                     style={{
                       background: 'none',
                       border: 'none',
@@ -525,57 +560,75 @@ const Messages: React.FC = () => {
                       color: '#ffffff',
                       transition: 'transform 0.2s'
                     }}>
-                      {selectedConversationData.contactName.charAt(0).toUpperCase()}
+                      {selectedConversationData.contact_name.charAt(0).toUpperCase()}
                     </div>
                   </button>
                   <div>
                     <div style={{ color: '#ffffff', fontSize: '16px', fontWeight: '600' }}>
-                      {selectedConversationData.contactName}
+                      {selectedConversationData.contact_name}
                     </div>
                     <div style={{ color: '#888888', fontSize: '12px' }}>
-                      {selectedConversationData.jobTitle}
+                      {selectedConversationData.job_title || 'General conversation'}
                     </div>
                   </div>
                 </div>
 
                 {/* Messages */}
-                <div style={{
+                <div className="messages-container" style={{
                   flex: 1,
                   padding: '1rem',
                   overflowY: 'auto',
+                  scrollBehavior: 'smooth',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '1rem'
+                  gap: '1rem',
+                  maxHeight: 'calc(100vh - 200px)'
                 }}>
-                  {messages.map(message => (
-                    <div
-                      key={message.id}
-                      style={{
-                        display: 'flex',
-                        justifyContent: message.isFromUser ? 'flex-end' : 'flex-start'
-                      }}
-                    >
-                      <div style={{
-                        maxWidth: '70%',
-                        backgroundColor: message.isFromUser ? '#4c1d95' : '#1a1a1a',
-                        color: '#ffffff',
-                        padding: '12px 16px',
-                        borderRadius: '12px',
-                        fontSize: '14px',
-                        lineHeight: 1.4
-                      }}>
-                        <div style={{
-                          fontSize: '12px',
-                          color: message.isFromUser ? '#cccccc' : '#888888',
-                          marginBottom: '4px',
-                          fontWeight: '600'
-                        }}>
-                          {message.sender} • {message.timestamp}
-                        </div>
-                        <div>{message.content}</div>
-                      </div>
+                  {messages.length === 0 ? (
+                    <div style={{
+                      flex: 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#888888',
+                      fontSize: '16px'
+                    }}>
+                      No messages yet. Start the conversation!
                     </div>
-                  ))}
+                  ) : (
+                    messages.map(message => (
+                      <div
+                        key={message.id}
+                        style={{
+                          display: 'flex',
+                          justifyContent: message.isFromUser ? 'flex-end' : 'flex-start'
+                        }}
+                      >
+                        <div style={{
+                          maxWidth: '70%',
+                          backgroundColor: message.isFromUser ? '#4c1d95' : '#1a1a1a',
+                          color: '#ffffff',
+                          padding: '12px 16px',
+                          borderRadius: '12px',
+                          fontSize: '14px',
+                          lineHeight: 1.4,
+                          wordWrap: 'break-word',
+                          overflowWrap: 'break-word'
+                        }}>
+                          <div style={{
+                            fontSize: '12px',
+                            color: message.isFromUser ? '#cccccc' : '#888888',
+                            marginBottom: '4px',
+                            fontWeight: '600'
+                          }}>
+                            {message.sender_name} • {new Date(message.created_at).toLocaleString()}
+                          </div>
+                          <div>{message.content}</div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                  <div ref={messagesEndRef} />
                 </div>
 
                 {/* Message Input */}
@@ -632,7 +685,8 @@ const Messages: React.FC = () => {
             )}
           </div>
         </div>
-    </div>
+      </div>
+    </>
   );
 };
 

@@ -38,17 +38,14 @@ const Home: React.FC = () => {
       const response = await fetch('http://localhost:3002/api/jobs');
       const data = await response.json();
       
-      // If user is logged in, filter out their own jobs and already claimed jobs
+      // If user is logged in, filter out their own jobs
       let filteredJobs = data;
       if (currentUser) {
         filteredJobs = data.filter((job: Job) => 
-          job.employer_id !== currentUser.id.toString() && 
-          job.status === 'open'
+          job.employer_id !== currentUser.id.toString()
         );
-      } else {
-        // If not logged in, only show open jobs
-        filteredJobs = data.filter((job: Job) => job.status === 'open');
       }
+      // Show all jobs regardless of status (posted jobs)
       
       // Get the 9 most recent jobs
       const recentJobs = filteredJobs.slice(0, 9);
@@ -63,6 +60,13 @@ const Home: React.FC = () => {
   const handleClaimClick = (e: React.MouseEvent, job: Job) => {
     e.preventDefault();
     e.stopPropagation();
+    
+    // Check if user is logged in
+    if (!currentUser) {
+      navigate('/login');
+      return;
+    }
+    
     setSelectedJob(job);
     setShowConfirmation(true);
   };
@@ -95,6 +99,18 @@ const Home: React.FC = () => {
           console.error('Failed to claim job');
           // If server request failed, refetch jobs to restore correct state
           fetchJobs();
+        } else {
+          // Job claimed successfully, navigate to messages
+          const data = await response.json();
+          if (data.conversation_id) {
+            navigate('/messages', { 
+              state: { 
+                openConversationId: data.conversation_id 
+              } 
+            });
+          } else {
+            navigate('/messages');
+          }
         }
       } catch (error) {
         console.error('Error claiming job:', error);
@@ -162,7 +178,7 @@ const Home: React.FC = () => {
               fontSize: '16px',
               fontWeight: '600'
             }}>
-              browse services
+              browse postings
             </button>
           </Link>
           <button 
@@ -226,7 +242,7 @@ const Home: React.FC = () => {
                   {job.description.length > 100 ? `${job.description.substring(0, 100)}...` : job.description}
                 </p>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1rem' }}>
-                  {job.tags.slice(0, 3).map(tag => (
+                  {(Array.isArray(job.tags) ? job.tags : []).slice(0, 3).map(tag => (
                     <span key={tag} style={{
                       padding: '3px 8px',
                       borderRadius: '8px',
@@ -255,21 +271,23 @@ const Home: React.FC = () => {
                       {new Date(job.created_at).toLocaleDateString()}
                     </span>
                   </div>
-                  <button 
-                    onClick={(e) => handleClaimClick(e, job)}
-                    style={{
-                      backgroundColor: '#4c1d95',
-                      color: 'white',
-                      border: 'none',
-                      padding: '8px 16px',
-                      borderRadius: '2px',
-                      cursor: 'pointer',
-                      fontSize: '14px',
-                      fontWeight: '600'
-                    }}
-                  >
-                    claim
-                  </button>
+                  {job.status === 'open' && (
+                    <button 
+                      onClick={(e) => handleClaimClick(e, job)}
+                      style={{
+                        backgroundColor: '#4c1d95',
+                        color: 'white',
+                        border: 'none',
+                        padding: '8px 16px',
+                        borderRadius: '2px',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        fontWeight: '600'
+                      }}
+                    >
+                      claim
+                    </button>
+                  )}
                 </div>
               </div>
               </Link>

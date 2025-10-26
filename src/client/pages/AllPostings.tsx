@@ -53,6 +53,13 @@ const AllPostings: React.FC = () => {
   const handleClaimClick = (e: React.MouseEvent, job: Job) => {
     e.preventDefault();
     e.stopPropagation();
+    
+    // Check if user is logged in
+    if (!currentUser) {
+      navigate('/login');
+      return;
+    }
+    
     setSelectedJob(job);
     setShowConfirmation(true);
   };
@@ -98,6 +105,18 @@ const AllPostings: React.FC = () => {
             }
           };
           fetchJobs();
+        } else {
+          // Job claimed successfully, navigate to messages
+          const data = await response.json();
+          if (data.conversation_id) {
+            navigate('/messages', { 
+              state: { 
+                openConversationId: data.conversation_id 
+              } 
+            });
+          } else {
+            navigate('/messages');
+          }
         }
       } catch (error) {
         console.error('Error claiming job:', error);
@@ -151,7 +170,7 @@ const AllPostings: React.FC = () => {
     return (
       job.title.toLowerCase().includes(query) ||
       job.description.toLowerCase().includes(query) ||
-      job.tags.some(tag => tag.toLowerCase().includes(query)) ||
+      (Array.isArray(job.tags) ? job.tags : []).some(tag => tag.toLowerCase().includes(query)) ||
       (job.employer_name && job.employer_name.toLowerCase().includes(query))
     );
   });
@@ -304,7 +323,7 @@ const AllPostings: React.FC = () => {
                     </p>
                     
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                      {job.tags.slice(0, 3).map(tag => (
+                      {(Array.isArray(job.tags) ? job.tags : []).slice(0, 3).map(tag => (
                         <span
                           key={tag}
                           style={{
@@ -319,7 +338,7 @@ const AllPostings: React.FC = () => {
                           {tag}
                         </span>
                       ))}
-                      {job.tags.length > 3 && (
+                      {Array.isArray(job.tags) && job.tags.length > 3 && (
                         <span style={{
                           padding: '3px 8px',
                           borderRadius: '8px',
@@ -344,33 +363,35 @@ const AllPostings: React.FC = () => {
                   </div>
                 </Link>
                 
-                {/* Claim Button */}
-                <button
-                  onClick={(e) => handleClaimClick(e, job)}
-                  style={{
-                    position: 'absolute',
-                    top: '1rem',
-                    right: '1rem',
-                    backgroundColor: '#4c1d95',
-                    color: '#ffffff',
-                    border: 'none',
-                    borderRadius: '6px',
-                    padding: '8px 16px',
-                    fontSize: '12px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    transition: 'background-color 0.2s',
-                    zIndex: 10
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = '#5b21b6';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = '#4c1d95';
-                  }}
-                >
-                  claim
-                </button>
+                {/* Claim Button - Only show for open jobs */}
+                {job.status === 'open' && (
+                  <button
+                    onClick={(e) => handleClaimClick(e, job)}
+                    style={{
+                      position: 'absolute',
+                      top: '1rem',
+                      right: '1rem',
+                      backgroundColor: '#4c1d95',
+                      color: '#ffffff',
+                      border: 'none',
+                      borderRadius: '6px',
+                      padding: '8px 16px',
+                      fontSize: '12px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      transition: 'background-color 0.2s',
+                      zIndex: 10
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = '#5b21b6';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = '#4c1d95';
+                    }}
+                  >
+                    claim
+                  </button>
+                )}
               </div>
             ))
           )}

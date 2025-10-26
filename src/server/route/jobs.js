@@ -1,14 +1,15 @@
-const express = require('express');
-const router = express.Router();
-const db = require('../config/database');
-const trustlessWork = require('../services/trustlessWork');
-const { v4: uuidv4 } = require('uuid'); // You'll need to install: npm install uuid
+import express from 'express';
+import { v4 as uuidv4 } from 'uuid';
+import trustlessWork from '../services/trustlessWork.js';
 
-// GET /api/jobs - Get all open jobs
+const createJobsRouter = (db) => {
+  const router = express.Router();
+
+// GET /api/jobs - Get all jobs
 router.get('/jobs', async (req, res) => {
   try {
     const [jobs] = await db.query(
-      'SELECT * FROM jobs WHERE status = "open" ORDER BY created_at DESC'
+      'SELECT * FROM jobs ORDER BY created_at DESC'
     );
     res.json(jobs);
   } catch (error) {
@@ -77,9 +78,26 @@ router.post('/jobs', async (req, res) => {
       name 
     } = req.body;
 
+    console.log('POST /jobs - Received data:', req.body);
+    console.log('employer_id:', employer_id, typeof employer_id);
+    console.log('title:', title);
+    console.log('description:', description);
+    console.log('price:', price);
+    console.log('currency:', currency);
+    console.log('tags:', tags);
+    console.log('name:', name);
+
     // Validate input
     if (!employer_id || !title || !description || !price || !currency) {
+      console.log('Missing required fields - employer_id:', !!employer_id, 'title:', !!title, 'description:', !!description, 'price:', !!price, 'currency:', !!currency);
       return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    // Convert employer_id to integer if it's a string
+    const employerIdInt = parseInt(employer_id, 10);
+    
+    if (isNaN(employerIdInt)) {
+      return res.status(400).json({ error: 'Invalid employer_id format' });
     }
 
     // Generate UUID for job
@@ -88,14 +106,14 @@ router.post('/jobs', async (req, res) => {
     // Insert job into database
     await db.query(
       `INSERT INTO jobs 
-       (id, employer_id, title, description, tags, price, currency, name, status) 
+       (id, employer_id, title, description, tags, price, currency, employer_name, status) 
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         jobId,
-        employer_id,
+        employerIdInt,
         title,
         description,
-        tags || null,
+        JSON.stringify(tags || []),
         price,
         currency,
         name || null,
@@ -206,6 +224,47 @@ router.post('/jobs/:id/claim', async (req, res) => {
 
     if (result.affectedRows === 0) {
       return res.status(400).json({ error: 'Job not available' });
+    }
+
+    // Get job details to send notification to employer and create conversation
+    const [jobs] = await db.query(
+      'SELECT title, employer_id FROM jobs WHERE id = ?',
+      [id]
+    );
+
+    if (jobs.length > 0) {
+      const job = jobs[0];
+      const employerId = job.employer_id;
+      const jobTitle = job.title;
+
+      // Create notification for the employer
+      const notificationId = uuidv4();
+      await db.query(
+        'INSERT INTO notifications (id, user_id, message, type, `read`) VALUES (?, ?, ?, ?, ?)',
+        [
+          notificationId,
+          employerId,
+          `Your job "${jobTitle}" has been claimed!`,
+          'job_claim',
+          0
+        ]
+      );
+
+      // Create conversation between employer and employee
+      const conversationId = uuidv4();
+      await db.query(
+        'INSERT INTO conversations (id, recipient1, recipient2) VALUES (?, ?, ?)',
+        [conversationId, employerId, employee_id]
+      );
+
+      // Create initial message from employee to employer
+      const messageId = uuidv4();
+      const initialMessage = `Hi! I'm interested in your job "${jobTitle}". I'd love to discuss the details and get started on this project.`;
+      
+      await db.query(
+        'INSERT INTO messages (id, conversation_id, sender_id, content) VALUES (?, ?, ?, ?)',
+        [messageId, conversationId, employee_id, initialMessage]
+      );
     }
 
     res.json({ message: 'Job claimed successfully' });
@@ -359,39 +418,135 @@ router.post('/jobs/:id/submit-release', async (req, res) => {
   }
 });
 
-// DELETE /api/jobs/:id - Cancel/delete job (only if not claimed)
+// DELETE /api/jobs/:id - Delete job (only if not claimed)
 router.delete('/jobs/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const { employer_id } = req.body;
 
+    console.log('Delete request - Job ID:', id);
+    console.log('Delete request - Employer ID:', employer_id);
+    console.log('Delete request - Employer ID type:', typeof employer_id);
+
+    // Convert employer_id to integer if it's a string
+    const employerIdInt = parseInt(employer_id, 10);
+    
+    console.log('Parsed employer ID:', employerIdInt);
+    
+    if (isNaN(employerIdInt)) {
+      console.log('Invalid employer_id format');
+      return res.status(400).json({ error: 'Invalid employer_id format' });
+    }
+
     // Verify job exists and is owned by employer
     const [jobs] = await db.query(
       'SELECT * FROM jobs WHERE id = ? AND employer_id = ?',
-      [id, employer_id]
+      [id, employerIdInt]
     );
 
+    console.log('Found jobs:', jobs.length);
+
     if (jobs.length === 0) {
+      console.log('Job not found or unauthorized');
       return res.status(404).json({ error: 'Job not found or unauthorized' });
     }
 
     const job = jobs[0];
+    console.log('Job status:', job.status);
 
     if (job.status !== 'open') {
-      return res.status(400).json({ error: 'Can only cancel unclaimed jobs' });
+      console.log('Job is not open, cannot delete');
+      return res.status(400).json({ error: 'Can only delete unclaimed jobs' });
     }
 
-    // Update status to cancelled
-    await db.query(
-      'UPDATE jobs SET status = "cancelled", updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-      [id]
-    );
+    // Actually delete the job from database
+    console.log('Deleting job from database...');
+    await db.query('DELETE FROM jobs WHERE id = ?', [id]);
+    console.log('Job deleted successfully');
 
-    res.json({ message: 'Job cancelled successfully' });
+    res.json({ message: 'Job deleted successfully' });
   } catch (error) {
-    console.error('Error cancelling job:', error);
-    res.status(500).json({ error: 'Failed to cancel job' });
+    console.error('Error deleting job:', error);
+    res.status(500).json({ error: 'Failed to delete job' });
   }
 });
 
-module.exports = router;
+// PUT /api/jobs/:id/claim - Employee (freelancer) claims job
+router.put('/jobs/:id/claim', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, claimed_by } = req.body;
+
+    if (!claimed_by) {
+      return res.status(400).json({ error: 'Missing claimed_by' });
+    }
+
+    // Convert claimed_by to integer if it's a string
+    const claimedByIdInt = parseInt(claimed_by, 10);
+    
+    if (isNaN(claimedByIdInt)) {
+      return res.status(400).json({ error: 'Invalid claimed_by format' });
+    }
+
+    // Update job status
+    const [result] = await db.query(
+      'UPDATE jobs SET employee_id = ?, status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND status = "open"',
+      [claimedByIdInt, status || 'in_progress', id]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(400).json({ error: 'Job not available' });
+    }
+
+    // Get job details to send notification to employer and create conversation
+    const [jobs] = await db.query(
+      'SELECT title, employer_id FROM jobs WHERE id = ?',
+      [id]
+    );
+
+    if (jobs.length > 0) {
+      const job = jobs[0];
+      const employerId = job.employer_id;
+      const jobTitle = job.title;
+
+      // Create notification for the employer
+      const notificationId = uuidv4();
+      await db.query(
+        'INSERT INTO notifications (id, user_id, message, type, `read`) VALUES (?, ?, ?, ?, ?)',
+        [
+          notificationId,
+          employerId,
+          `Your job "${jobTitle}" has been claimed!`,
+          'job_claim',
+          0
+        ]
+      );
+
+      // Create conversation between employer and employee
+      const conversationId = uuidv4();
+      await db.query(
+        'INSERT INTO conversations (id, recipient1, recipient2) VALUES (?, ?, ?)',
+        [conversationId, employerId, claimedByIdInt]
+      );
+
+      // Create initial message from employee to employer
+      const messageId = uuidv4();
+      const initialMessage = `Hi! I'm interested in your job "${jobTitle}". I'd love to discuss the details and get started on this project.`;
+      
+      await db.query(
+        'INSERT INTO messages (id, conversation_id, sender_id, content) VALUES (?, ?, ?, ?)',
+        [messageId, conversationId, claimedByIdInt, initialMessage]
+      );
+    }
+
+    res.json({ message: 'Job claimed successfully' });
+  } catch (error) {
+    console.error('Error claiming job:', error);
+    res.status(500).json({ error: 'Failed to claim job' });
+  }
+});
+
+  return router;
+};
+
+export default createJobsRouter;

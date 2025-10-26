@@ -1,5 +1,7 @@
-const axios = require('axios');
-require('dotenv').config();
+import axios from 'axios';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const TRUSTLESS_WORK_API_URL = 'https://api.trustlesswork.com';
 const API_KEY = process.env.TRUSTLESS_KEY;
@@ -7,7 +9,7 @@ const API_KEY = process.env.TRUSTLESS_KEY;
 
 // Axios instance with auth header
 const trustlessAPI = axios.create({
-  baseURL: API_URL,
+  baseURL: TRUSTLESS_WORK_API_URL,
   headers: {
     'Authorization': `Bearer ${API_KEY}`,
     'Content-Type': 'application/json'
@@ -147,7 +149,7 @@ async function getEscrow(escrowId) {
   }
 }
 
-module.exports = {
+export default {
   createEscrow,
   fundEscrow,
   approveMilestone,

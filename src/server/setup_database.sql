@@ -33,3 +33,14 @@ CREATE TABLE IF NOT EXISTS jobs (
   FOREIGN KEY (employer_id) REFERENCES users(id) ON DELETE CASCADE,
   FOREIGN KEY (employee_id) REFERENCES users(id) ON DELETE SET NULL
 );
+
+-- Create notifications table
+CREATE TABLE IF NOT EXISTS notifications (
+  id VARCHAR(36) PRIMARY KEY,
+  user_id INT NOT NULL,
+  message TEXT NOT NULL,
+  type VARCHAR(50) DEFAULT 'job_claim',
+  read BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);

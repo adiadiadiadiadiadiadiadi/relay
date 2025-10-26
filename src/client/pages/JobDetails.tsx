@@ -217,7 +217,7 @@ const JobDetails: React.FC = () => {
 
           {/* Tags */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-            {job.tags.map(tag => (
+            {(Array.isArray(job.tags) ? job.tags : []).map(tag => (
               <span key={tag} style={{
                 padding: '6px 12px',
                 borderRadius: '8px',
@@ -274,25 +274,27 @@ const JobDetails: React.FC = () => {
           </p>
         </div>
 
-        {/* Claim Button */}
-        <div style={{ marginTop: '2rem', textAlign: 'center' }}>
-          <button 
-            onClick={handleClaimClick}
-            style={{
-              backgroundColor: '#4c1d95',
-              color: 'white',
-              border: 'none',
-              padding: '14px 32px',
-              borderRadius: '2px',
-              fontSize: '16px',
-              fontWeight: '600',
-              cursor: 'pointer',
-              textTransform: 'lowercase'
-            }}
-          >
-            claim
-          </button>
-        </div>
+        {/* Claim Button - Only show for open jobs */}
+        {job.status === 'open' && (
+          <div style={{ marginTop: '2rem', textAlign: 'center' }}>
+            <button 
+              onClick={handleClaimClick}
+              style={{
+                backgroundColor: '#4c1d95',
+                color: 'white',
+                border: 'none',
+                padding: '14px 32px',
+                borderRadius: '2px',
+                fontSize: '16px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                textTransform: 'lowercase'
+              }}
+            >
+              claim
+            </button>
+          </div>
+        )}
       </section>
 
       {/* Confirmation Alert */}
