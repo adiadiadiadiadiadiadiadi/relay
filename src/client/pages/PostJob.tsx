@@ -71,13 +71,13 @@ const PostJob: React.FC = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          employer_id: currentUser.id,
           title,
           description,
           price: budget,
           currency,
           tags: selectedTags,
-          name: currentUser.name || currentUser.email
+          userId: currentUser.id,
+          employerName: currentUser.name || currentUser.email
         }),
       });
 

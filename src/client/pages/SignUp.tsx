@@ -31,10 +31,14 @@ const SignUp: React.FC = () => {
       return setError('Password must be at least 6 characters');
     }
 
+    if (!walletAddress || walletAddress.trim() === '') {
+      return setError('Wallet address is required');
+    }
+
     try {
       setError('');
       setLoading(true);
-      await signup(email, password, name);
+      await signup(email, password, name, walletAddress);
       navigate('/home');
     } catch (error: any) {
       setError('Failed to create an account');
@@ -168,6 +172,33 @@ const SignUp: React.FC = () => {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                border: '1px solid #333333',
+                borderRadius: '2px',
+                fontSize: '16px',
+                backgroundColor: '#1a1a1a',
+                color: '#ffffff',
+                boxSizing: 'border-box',
+                outline: 'none',
+                transition: 'border-color 0.2s'
+              }}
+              onFocus={(e) => e.target.style.borderColor = '#4c1d95'}
+              onBlur={(e) => e.target.style.borderColor = '#333333'}
+            />
+          </div>
+
+          <div style={{ marginBottom: '1.5rem' }}>
+            <label style={{ display: 'block', marginBottom: '0.5rem', color: '#cccccc', fontSize: '14px', fontWeight: '700' }}>
+              crypto wallet address
+            </label>
+            <input
+              type="text"
+              value={walletAddress}
+              onChange={(e) => setWalletAddress(e.target.value)}
+              required
+              placeholder="GBVRK6RFX..."
               style={{
                 width: '100%',
                 padding: '12px 16px',

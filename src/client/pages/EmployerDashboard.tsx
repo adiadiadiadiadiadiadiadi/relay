@@ -15,11 +15,8 @@ interface Job {
   tags: string[];
   status: string;
   created_at: string;
-  employer_id: string;
   employer_name?: string;
   employer_email?: string;
-  escrow_id?: string;
-  employee_id?: string;
 }
 
 const EmployerDashboard: React.FC = () => {
@@ -32,8 +29,6 @@ const EmployerDashboard: React.FC = () => {
   const [showRatingDropdown, setShowRatingDropdown] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
-  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
-  const [jobToDelete, setJobToDelete] = useState<Job | null>(null);
   
   // Hardcoded ratings
   const employerRating = 4.8;
@@ -68,8 +63,7 @@ const EmployerDashboard: React.FC = () => {
     }
   };
 
-  // Categorize jobs - show all posted jobs regardless of status
-  const postedJobs = jobs.filter(job => job.employer_id === (userId || currentUser?.id));
+  // Categorize jobs
   const openJobs = jobs.filter(job => job.status === 'open');
   const currentJobs = jobs.filter(job => job.status === 'in_progress' || job.status === 'submitted');
   const pastJobs = jobs.filter(job => job.status === 'completed' || job.status === 'cancelled');
@@ -84,10 +78,6 @@ const EmployerDashboard: React.FC = () => {
   const handleConfirmClaim = async () => {
     if (selectedJob) {
       try {
-        // Close the confirmation dialog first
-        setShowConfirmation(false);
-        setSelectedJob(null);
-
         // Update job status to in_progress on server
         const response = await fetch(`http://localhost:3002/api/jobs/${selectedJob.id}/claim`, {
           method: 'PUT',
@@ -105,22 +95,15 @@ const EmployerDashboard: React.FC = () => {
           setJobs(prevJobs => 
             prevJobs.map(job => 
               job.id === selectedJob.id 
-                ? { ...job, status: 'in_progress', employee_id: currentUser?.id }
+                ? { ...job, status: 'in_progress' }
                 : job
             )
           );
         } else {
-          const errorData = await response.json();
-          console.error('Failed to claim job:', errorData.error);
-          alert(`Failed to claim job: ${errorData.error}`);
-          // Refetch jobs to restore correct state
-          await fetchJobs(userId || currentUser?.id || '');
+          console.error('Failed to claim job');
         }
       } catch (error) {
         console.error('Error claiming job:', error);
-        alert('Error claiming job. Please try again.');
-        // Refetch jobs to restore correct state
-        await fetchJobs(userId || currentUser?.id || '');
       }
     }
   };
@@ -148,128 +131,16 @@ const EmployerDashboard: React.FC = () => {
     setSelectedJob(null);
   };
 
-  const handleDeleteJob = async (job: Job, e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setJobToDelete(job);
-    setShowDeleteConfirmation(true);
-  };
-
-  const handleConfirmDelete = async () => {
-    if (jobToDelete) {
-      try {
-        console.log('Attempting to delete job:', jobToDelete.id);
-        console.log('Employer ID:', userId || currentUser?.id);
-        
-        // Close the confirmation modal first
-        setShowDeleteConfirmation(false);
-        setJobToDelete(null);
-        
-        // Delete the job from the server
-        const response = await fetch(`http://localhost:3002/api/jobs/${jobToDelete.id}`, {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            employer_id: userId || currentUser?.id
-          })
-        });
-
-        console.log('Delete response status:', response.status);
-        
-        if (response.ok) {
-          console.log('Job deleted successfully');
-          // Optimistically remove the job from the UI after successful server response
-          setJobs(prevJobs => prevJobs.filter(j => j.id !== jobToDelete.id));
-        } else {
-          const errorData = await response.json();
-          console.error('Failed to delete job:', errorData);
-          alert(`Failed to delete job: ${errorData.error}`);
-          // Refetch jobs to restore correct state
-          await fetchJobs(userId || currentUser?.id || '');
-        }
-      } catch (error) {
-        console.error('Error deleting job:', error);
-        alert('Error deleting job. Please try again.');
-        // Refetch jobs to restore correct state
-        await fetchJobs(userId || currentUser?.id || '');
-      }
-    }
-  };
-
-  const handleCancelDelete = () => {
-    setShowDeleteConfirmation(false);
-    setJobToDelete(null);
-  };
-
-  const renderJobSection = (jobs: Job[], title: string, badgeColor: string, badgeTextColor: string) => {
-    return (
-      <div>
-        <h2 style={{ 
-          color: '#ffffff', 
-          fontSize: '1.5rem', 
-          fontWeight: '700', 
-          marginBottom: '1rem',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.5rem'
-        }}>
-          {title}
-          <span style={{ 
-            backgroundColor: badgeColor, 
-            color: badgeTextColor, 
-            fontSize: '12px', 
-            padding: '2px 8px', 
-            borderRadius: '10px',
-            fontWeight: '600'
-          }}>
-            {jobs.length}
-          </span>
-        </h2>
-        {loading ? (
-          <p style={{ color: '#888888' }}>loading...</p>
-        ) : jobs.length === 0 ? (
-          <div style={{
-            backgroundColor: '#111111',
-            border: '1px solid #333333',
-            borderRadius: '4px',
-            padding: '2rem',
-            textAlign: 'center'
-          }}>
-            <p style={{ color: '#888888', fontSize: '14px' }}>
-              no {title.toLowerCase()}
-            </p>
-          </div>
-        ) : (
-          <div 
-            className="job-scroll-container"
-            style={{
-              backgroundColor: '#111111',
-              border: '1px solid #333333',
-              borderRadius: '4px',
-              padding: '1rem',
-              maxHeight: '250px',
-              overflowY: 'auto',
-              scrollbarWidth: 'none', // Firefox
-              msOverflowStyle: 'none' // IE/Edge
-            }}>
-            {jobs.map(renderJobCard)}
-          </div>
-        )}
-      </div>
-    );
-  };
-
   const renderJobCard = (job: Job) => (
-    <div key={job.id} style={{ position: 'relative', marginBottom: '1rem' }}>
+    <div key={job.id} style={{ position: 'relative' }}>
       <Link to={`/job/${job.id}`} style={{ textDecoration: 'none' }}>
         <div
           style={{
-            backgroundColor: '#1a1a1a',
+            backgroundColor: '#111111',
             border: '1px solid #333333',
             borderRadius: '4px',
-            padding: '1rem',
+            padding: '1.25rem',
+            marginBottom: '1rem',
             transition: 'transform 0.2s, box-shadow 0.2s',
             cursor: 'pointer'
           }}
@@ -301,7 +172,7 @@ const EmployerDashboard: React.FC = () => {
         {job.description.length > 100 ? `${job.description.substring(0, 100)}...` : job.description}
       </p>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.75rem' }}>
-        {(Array.isArray(job.tags) ? job.tags : []).slice(0, 3).map(tag => (
+        {job.tags.slice(0, 3).map(tag => (
           <span
             key={tag}
             style={{
@@ -328,113 +199,15 @@ const EmployerDashboard: React.FC = () => {
     </div>
     </Link>
     
-    {/* Action Button for Open Jobs */}
+    {/* Claim Button for Open Jobs */}
     {job.status === 'open' && (
-      <>
-        {/* Delete Button for Jobs Posted by Current User */}
-        {job.employer_id === (userId || currentUser?.id) && (
-          <button
-            onClick={(e) => handleDeleteJob(job, e)}
-            style={{
-              position: 'absolute',
-              top: '1rem',
-              right: '1rem',
-              backgroundColor: '#dc2626',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: '6px',
-              padding: '8px 16px',
-              fontSize: '12px',
-              fontWeight: '600',
-              cursor: 'pointer',
-              transition: 'background-color 0.2s',
-              zIndex: 10
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#b91c1c';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = '#dc2626';
-            }}
-          >
-            delete
-          </button>
-        )}
-        
-        {/* Claim Button for Jobs Posted by Others */}
-        {job.employer_id !== (userId || currentUser?.id) && (
-          <button
-            onClick={(e) => handleClaimClick(job, e)}
-            style={{
-              position: 'absolute',
-              top: '1rem',
-              right: '1rem',
-              backgroundColor: '#4c1d95',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: '6px',
-              padding: '8px 16px',
-              fontSize: '12px',
-              fontWeight: '600',
-              cursor: 'pointer',
-              transition: 'background-color 0.2s',
-              zIndex: 10
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#5b21b6';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = '#4c1d95';
-            }}
-          >
-            claim
-          </button>
-        )}
-      </>
-    )}
-    
-    {/* Submit Button for In-Progress Jobs for Employee */}
-    {job.status === 'in_progress' && job.employee_id === (userId || currentUser?.id)?.toString() && (
       <button
-        onClick={async (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          try {
-            const response = await fetch(`http://localhost:3002/api/jobs/${job.id}/submit`, {
-              method: 'PUT',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                employee_id: currentUser?.id
-              })
-            });
-            
-            if (response.ok) {
-              const fetchJobs = async () => {
-                const response = await fetch(`http://localhost:3002/api/jobs`);
-                const allJobs = await response.json();
-                const userJobs = allJobs.filter((j: any) => 
-                  j.employer_id === userId || j.employee_id === userId
-                );
-                setJobs(userJobs);
-              };
-              fetchJobs();
-              alert('Job submitted successfully!');
-            } else {
-              const error = await response.json();
-              alert(error.error || 'Failed to submit job');
-            }
-          } catch (error) {
-            console.error('Error submitting job:', error);
-            alert('Error submitting job');
-          }
-        }}
+        onClick={(e) => handleClaimClick(job, e)}
         style={{
           position: 'absolute',
           top: '1rem',
           right: '1rem',
-          backgroundColor: '#1a4d1a',
+          backgroundColor: '#4c1d95',
           color: '#ffffff',
           border: 'none',
           borderRadius: '6px',
@@ -446,76 +219,13 @@ const EmployerDashboard: React.FC = () => {
           zIndex: 10
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = '#225d22';
+          e.currentTarget.style.backgroundColor = '#5b21b6';
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = '#1a4d1a';
+          e.currentTarget.style.backgroundColor = '#4c1d95';
         }}
       >
-        submit
-      </button>
-    )}
-    
-    {/* Verify Button for Submitted Jobs for Employer */}
-    {job.status === 'submitted' && job.employer_id === (userId || currentUser?.id)?.toString() && (
-      <button
-        onClick={async (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          try {
-            const response = await fetch(`http://localhost:3002/api/jobs/${job.id}/verify`, {
-              method: 'PUT',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                employer_id: currentUser?.id
-              })
-            });
-            
-            if (response.ok) {
-              const fetchJobs = async () => {
-                const response = await fetch(`http://localhost:3002/api/jobs`);
-                const allJobs = await response.json();
-                const userJobs = allJobs.filter((j: any) => 
-                  j.employer_id === userId || j.employee_id === userId
-                );
-                setJobs(userJobs);
-              };
-              fetchJobs();
-              alert('Job verified successfully! Payment will be processed.');
-            } else {
-              const error = await response.json();
-              alert(error.error || 'Failed to verify job');
-            }
-          } catch (error) {
-            console.error('Error verifying job:', error);
-            alert('Error verifying job');
-          }
-        }}
-        style={{
-          position: 'absolute',
-          top: '1rem',
-          right: '1rem',
-          backgroundColor: '#1a4d1a',
-          color: '#ffffff',
-          border: 'none',
-          borderRadius: '6px',
-          padding: '8px 16px',
-          fontSize: '12px',
-          fontWeight: '600',
-          cursor: 'pointer',
-          transition: 'background-color 0.2s',
-          zIndex: 10
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = '#225d22';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = '#1a4d1a';
-        }}
-      >
-        verify
+        claim
       </button>
     )}
     </div>
@@ -527,13 +237,6 @@ const EmployerDashboard: React.FC = () => {
       backgroundColor: '#0a0a0a',
       fontFamily: '"Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif'
     }}>
-      <style>
-        {`
-          .job-scroll-container::-webkit-scrollbar {
-            display: none;
-          }
-        `}
-      </style>
       <Header />
 
       {/* Profile Header */}
@@ -545,84 +248,40 @@ const EmployerDashboard: React.FC = () => {
           padding: '2rem',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
           gap: '1.5rem'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-            <div style={{
-              width: '80px',
-              height: '80px',
-              backgroundColor: '#4c1d95',
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '2rem',
-              fontWeight: '700',
-              color: '#ffffff'
-            }}>
-              {currentUser?.email?.charAt(0).toUpperCase()}
-            </div>
-            <div>
-              <h1 style={{ 
-                color: '#ffffff', 
-                fontSize: '2rem', 
-                fontWeight: '800', 
-                margin: '0 0 0.5rem 0',
-                textTransform: 'lowercase'
-              }}>
-                {currentUser?.email?.split('@')[0]}
-              </h1>
-              <p style={{ 
-                color: '#888888', 
-                fontSize: '14px', 
-                margin: 0 
-              }}>
-                {currentUser?.email}
-              </p>
-            </div>
+          <div style={{
+            width: '80px',
+            height: '80px',
+            backgroundColor: '#4c1d95',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '2rem',
+            fontWeight: '700',
+            color: '#ffffff'
+          }}>
+            {currentUser?.email?.charAt(0).toUpperCase()}
           </div>
-          
-          {/* Post Job Button - Only show if viewing own profile */}
-          {(() => {
-            console.log('Debug - currentUser:', currentUser);
-            console.log('Debug - userId:', userId);
-            console.log('Debug - currentUser.id:', currentUser?.id);
-            console.log('Debug - userId type:', typeof userId);
-            console.log('Debug - currentUser.id type:', typeof currentUser?.id);
-            console.log('Debug - comparison:', currentUser?.id === userId);
-            console.log('Debug - string comparison:', String(currentUser?.id) === String(userId));
-            return currentUser && userId && String(currentUser.id) === String(userId);
-          })() && (
-            <button
-              onClick={() => navigate('/post-job')}
-              style={{
-                backgroundColor: '#4c1d95',
-                color: '#ffffff',
-                border: 'none',
-                borderRadius: '6px',
-                padding: '12px 24px',
-                fontSize: '14px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                transition: 'background-color 0.2s',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.5rem'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#5b21b6';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = '#4c1d95';
-              }}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 5v14M5 12h14"/>
-              </svg>
-              post new job
-            </button>
-          )}
+          <div>
+            <h1 style={{ 
+              color: '#ffffff', 
+              fontSize: '2rem', 
+              fontWeight: '800', 
+              margin: '0 0 0.5rem 0',
+              textTransform: 'lowercase'
+            }}>
+              {currentUser?.email?.split('@')[0]}
+            </h1>
+            <p style={{ 
+              color: '#888888', 
+              fontSize: '14px', 
+              margin: 0 
+            }}>
+              {currentUser?.email}
+            </p>
+          </div>
         </div>
       </div>
 
@@ -814,14 +473,131 @@ const EmployerDashboard: React.FC = () => {
           {/* Right Column - Job Lists */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
             
-            {/* Posted Jobs */}
-            {renderJobSection(postedJobs, 'posted jobs', '#1a4d1a', '#4ade80')}
+            {/* Open Jobs */}
+            <div>
+              <h2 style={{ 
+                color: '#ffffff', 
+                fontSize: '1.5rem', 
+                fontWeight: '700', 
+                marginBottom: '1rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}>
+                open jobs
+                <span style={{ 
+                  backgroundColor: '#1a4d1a', 
+                  color: '#4ade80', 
+                  fontSize: '12px', 
+                  padding: '2px 8px', 
+                  borderRadius: '10px',
+                  fontWeight: '600'
+                }}>
+                  {openJobs.length}
+                </span>
+              </h2>
+              {loading ? (
+                <p style={{ color: '#888888' }}>loading...</p>
+              ) : openJobs.length === 0 ? (
+                <div style={{
+                  backgroundColor: '#111111',
+                  border: '1px solid #333333',
+                  borderRadius: '4px',
+                  padding: '2rem',
+                  textAlign: 'center'
+                }}>
+                  <p style={{ color: '#888888', fontSize: '14px' }}>
+                    no open jobs
+                  </p>
+                </div>
+              ) : (
+                openJobs.map(renderJobCard)
+              )}
+            </div>
 
             {/* Current Jobs */}
-            {renderJobSection(currentJobs, 'current jobs', '#1a3a4d', '#60a5fa')}
+            <div>
+              <h2 style={{ 
+                color: '#ffffff', 
+                fontSize: '1.5rem', 
+                fontWeight: '700', 
+                marginBottom: '1rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}>
+                current jobs
+                <span style={{ 
+                  backgroundColor: '#1a3a4d', 
+                  color: '#60a5fa', 
+                  fontSize: '12px', 
+                  padding: '2px 8px', 
+                  borderRadius: '10px',
+                  fontWeight: '600'
+                }}>
+                  {currentJobs.length}
+                </span>
+              </h2>
+              {loading ? (
+                <p style={{ color: '#888888' }}>loading...</p>
+              ) : currentJobs.length === 0 ? (
+                <div style={{
+                  backgroundColor: '#111111',
+                  border: '1px solid #333333',
+                  borderRadius: '4px',
+                  padding: '2rem',
+                  textAlign: 'center'
+                }}>
+                  <p style={{ color: '#888888', fontSize: '14px' }}>
+                    no active jobs
+                  </p>
+                </div>
+              ) : (
+                currentJobs.map(renderJobCard)
+              )}
+            </div>
 
             {/* Past Jobs */}
-            {renderJobSection(pastJobs, 'past jobs', '#1a1a1a', '#888888')}
+            <div>
+              <h2 style={{ 
+                color: '#ffffff', 
+                fontSize: '1.5rem', 
+                fontWeight: '700', 
+                marginBottom: '1rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}>
+                past jobs
+                <span style={{ 
+                  backgroundColor: '#1a1a1a', 
+                  color: '#888888', 
+                  fontSize: '12px', 
+                  padding: '2px 8px', 
+                  borderRadius: '10px',
+                  fontWeight: '600'
+                }}>
+                  {pastJobs.length}
+                </span>
+              </h2>
+              {loading ? (
+                <p style={{ color: '#888888' }}>loading...</p>
+              ) : pastJobs.length === 0 ? (
+                <div style={{
+                  backgroundColor: '#111111',
+                  border: '1px solid #333333',
+                  borderRadius: '4px',
+                  padding: '2rem',
+                  textAlign: 'center'
+                }}>
+                  <p style={{ color: '#888888', fontSize: '14px' }}>
+                    no completed jobs
+                  </p>
+                </div>
+              ) : (
+                pastJobs.map(renderJobCard)
+              )}
+            </div>
 
           </div>
         </div>
@@ -836,109 +612,6 @@ const EmployerDashboard: React.FC = () => {
           jobTitle={selectedJob.title}
           jobPrice={convertAndFormatCurrency(selectedJob.price, selectedJob.currency as Currency, userCurrency)}
         />
-      )}
-
-      {/* Delete Confirmation Modal */}
-      {showDeleteConfirmation && jobToDelete && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.8)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 10000,
-          fontFamily: '"Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif'
-        }}>
-          <div style={{
-            backgroundColor: '#111111',
-            border: '1px solid #333333',
-            borderRadius: '8px',
-            padding: '2rem',
-            maxWidth: '400px',
-            width: '90%',
-            textAlign: 'center'
-          }}>
-            <div style={{
-              fontSize: '3rem',
-              marginBottom: '1rem',
-              color: '#dc2626'
-            }}>
-              ⚠️
-            </div>
-            <h3 style={{
-              color: '#ffffff',
-              fontSize: '1.5rem',
-              fontWeight: '700',
-              marginBottom: '1rem'
-            }}>
-              delete job?
-            </h3>
-            <p style={{
-              color: '#888888',
-              fontSize: '1rem',
-              marginBottom: '1.5rem',
-              lineHeight: '1.5'
-            }}>
-              are you sure you want to delete <strong style={{ color: '#ffffff' }}>"{jobToDelete.title}"</strong>? this action cannot be undone.
-            </p>
-            <div style={{
-              display: 'flex',
-              gap: '1rem',
-              justifyContent: 'center'
-            }}>
-              <button
-                onClick={handleCancelDelete}
-                style={{
-                  backgroundColor: 'transparent',
-                  color: '#888888',
-                  border: '1px solid #333333',
-                  borderRadius: '6px',
-                  padding: '12px 24px',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#1a1a1a';
-                  e.currentTarget.style.borderColor = '#555555';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                  e.currentTarget.style.borderColor = '#333333';
-                }}
-              >
-                cancel
-              </button>
-              <button
-                onClick={handleConfirmDelete}
-                style={{
-                  backgroundColor: '#dc2626',
-                  color: '#ffffff',
-                  border: 'none',
-                  borderRadius: '6px',
-                  padding: '12px 24px',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  transition: 'background-color 0.2s'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#b91c1c';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = '#dc2626';
-                }}
-              >
-                delete
-              </button>
-            </div>
-          </div>
-        </div>
       )}
     </div>
   );

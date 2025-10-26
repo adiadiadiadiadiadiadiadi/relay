@@ -18,7 +18,6 @@ interface Job {
   employer_id: string;
   employer_name?: string;
   escrow_id?: string;
-  employee_id?: string;
 }
 
 const Home: React.FC = () => {
@@ -266,7 +265,7 @@ const Home: React.FC = () => {
                       fontSize: '10px',
                       fontWeight: '600'
                     }}>
-                      {job.status === 'submitted' ? 'waiting for verification' : job.status}
+                      {job.status}
                     </span>
                     <span style={{ color: '#666666', fontSize: '11px' }}>
                       {new Date(job.created_at).toLocaleDateString()}
@@ -287,90 +286,6 @@ const Home: React.FC = () => {
                       }}
                     >
                       claim
-                    </button>
-                  )}
-                  {job.status === 'in_progress' && job.employee_id === currentUser?.id?.toString() && (
-                    <button 
-                      onClick={async (e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        try {
-                          const response = await fetch(`http://localhost:3002/api/jobs/${job.id}/submit`, {
-                            method: 'PUT',
-                            headers: {
-                              'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({
-                              employee_id: currentUser?.id
-                            })
-                          });
-                          
-                          if (response.ok) {
-                            fetchJobs();
-                            alert('Job submitted successfully!');
-                          } else {
-                            const error = await response.json();
-                            alert(error.error || 'Failed to submit job');
-                          }
-                        } catch (error) {
-                          console.error('Error submitting job:', error);
-                          alert('Error submitting job');
-                        }
-                      }}
-                      style={{
-                        backgroundColor: '#1a4d1a',
-                        color: 'white',
-                        border: 'none',
-                        padding: '8px 16px',
-                        borderRadius: '2px',
-                        cursor: 'pointer',
-                        fontSize: '14px',
-                        fontWeight: '600'
-                      }}
-                    >
-                      submit
-                    </button>
-                  )}
-                  {job.status === 'submitted' && job.employer_id === currentUser?.id?.toString() && (
-                    <button 
-                      onClick={async (e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        try {
-                          const response = await fetch(`http://localhost:3002/api/jobs/${job.id}/verify`, {
-                            method: 'PUT',
-                            headers: {
-                              'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({
-                              employer_id: currentUser?.id
-                            })
-                          });
-                          
-                          if (response.ok) {
-                            fetchJobs();
-                            alert('Job verified successfully! Payment will be processed.');
-                          } else {
-                            const error = await response.json();
-                            alert(error.error || 'Failed to verify job');
-                          }
-                        } catch (error) {
-                          console.error('Error verifying job:', error);
-                          alert('Error verifying job');
-                        }
-                      }}
-                      style={{
-                        backgroundColor: '#1a4d1a',
-                        color: 'white',
-                        border: 'none',
-                        padding: '8px 16px',
-                        borderRadius: '2px',
-                        cursor: 'pointer',
-                        fontSize: '14px',
-                        fontWeight: '600'
-                      }}
-                    >
-                      verify
                     </button>
                   )}
                 </div>
