@@ -103,3 +103,39 @@ XDR length: 236
 ✅ Payment XDR ready for signing
 Payment ready for signing with Freighter
 === PAYMENT READY FOR SIGNING ===
+📥 REQUEST: GET /users/22/notifications
+📥 REQUEST: GET /jobs
+📥 REQUEST: GET /users/22/notifications
+📥 REQUEST: GET /jobs
+📥 REQUEST: GET /users/22/notifications
+📥 REQUEST: GET /jobs
+📥 REQUEST: GET /users/22/notifications
+📥 REQUEST: GET /jobs
+📥 REQUEST: GET /users/22/notifications
+📥 REQUEST: GET /users/22/wallets
+Fetching wallets for user ID: 22 type: string
+📥 REQUEST: GET /users/22/notifications
+Found wallets: 1 [
+  {
+    id: '88a496f0-3c60-4943-8c0c-f8a39451e965',
+    user_id: 22,
+    address: 'GA5JKIO5RXB3ZJDRQYFNKTOSTSQ3S7VBRRZVFCE5MJFVGXOX6YEK2IEQ',
+    label: 'main',
+    created_at: 2025-10-26T08:06:28.000Z
+  }
+]
+📥 REQUEST: GET /users/22/wallets
+Fetching wallets for user ID: 22 type: string
+Found wallets: 1 [
+  {
+    id: '88a496f0-3c60-4943-8c0c-f8a39451e965',
+    user_id: 22,
+    address: 'GA5JKIO5RXB3ZJDRQYFNKTOSTSQ3S7VBRRZVFCE5MJFVGXOX6YEK2IEQ',
+    label: 'main',
+    created_at: 2025-10-26T08:06:28.000Z
+  }
+]
+📥 REQUEST: GET /users/22/notifications
+📥 REQUEST: GET /jobs
+📥 REQUEST: GET /users/22/notifications
+📥 REQUEST: GET /jobs
