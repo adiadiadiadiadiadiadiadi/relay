@@ -1,24 +1,22 @@
 import express from "express";
 import mysql from "mysql2/promise";
-import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import crypto from "crypto";
 import jobsRouter from "./route/jobs.js";
+import { verifyFirebaseToken } from "./middleware/firebaseAuth.js";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 
-// Load environment variables
 dotenv.config();
-
 const app = express();
 
-// Enable CORS for all routes
-const CORS_ORIGIN = process.env.CORS_ORIGIN || '*';
+const JWT_SECRET = process.env.JWT_SECRET || 'HELLO';
 
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', CORS_ORIGIN);
+  res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-  
+
   // Handle preflight requests
   if (req.method === 'OPTIONS') {
     res.sendStatus(200);
@@ -29,18 +27,12 @@ app.use((req, res, next) => {
 
 app.use(express.json());
 
-// Root endpoint
 app.get("/", (req, res) => {
-  res.json({ message: "Stellar Marketplace API", version: "1.0.1", debug: "Updated server" });
+  res.json({ 
+    message: "Relay API", 
+    version: "1.0.1"
+  });
 });
-
-// Test endpoint to verify server is updated
-app.get("/api/test", (req, res) => {
-  res.json({ message: "Server updated", timestamp: new Date().toISOString() });
-});
-
-// JWT secret key from environment variables
-const JWT_SECRET = process.env.JWT_SECRET || "fallback-secret-key";
 
 // connect once at startup
 const db = await mysql.createConnection({
@@ -56,9 +48,9 @@ app.use("/api", jobsRouter(db));
 // endpoint to register/signup
 app.post("/api/auth/signup", async (req, res) => {
   const { email, password, name, wallet_address, wallet_label } = req.body;
-  
+
   console.log('Signup request:', { email, name, wallet_address, wallet_label });
-  
+
   // Validation
   if (!email || !password) {
     return res.status(400).json({ error: "Email and password are required" });
@@ -107,11 +99,11 @@ app.post("/api/auth/signup", async (req, res) => {
     // Generate JWT token
     const token = jwt.sign({ id: result.insertId, email }, JWT_SECRET, { expiresIn: "24h" });
 
-    res.status(201).json({ 
-      id: result.insertId, 
-      email, 
+    res.status(201).json({
+      id: result.insertId,
+      email,
       name: name || email,
-      token 
+      token
     });
   } catch (err) {
     console.error('Signup error:', err);
@@ -151,12 +143,85 @@ app.post("/api/auth/login", async (req, res) => {
     // Generate JWT token
     const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: "24h" });
 
-    res.json({ 
-      id: user.id, 
-      email: user.email, 
+    res.json({
+      id: user.id,
+      email: user.email,
       name: user.name,
-      token 
+      token
     });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
+// New Firebase signup endpoint
+app.post("/api/auth/firebase-signup", verifyFirebaseToken, async (req, res) => {
+  const { name, wallet_address, wallet_label } = req.body;
+  const { email, uid } = req.firebaseUser;
+
+  console.log('Firebase signup request:', { email, name, wallet_address, wallet_label });
+
+  // Validation
+  if (!wallet_address) {
+    return res.status(400).json({ error: "Wallet address is required" });
+  }
+
+  try {
+    // Check if user already exists by Firebase UID
+    const [existingUsers] = await db.execute(
+      "SELECT * FROM users WHERE firebase_uid = ?",
+      [uid]
+    );
+
+    if (existingUsers.length > 0) {
+      return res.status(400).json({ error: "User already exists in database" });
+    }
+
+    // Insert user with Firebase UID
+    const [result] = await db.execute(
+      "INSERT INTO users (firebase_uid, name, email) VALUES (?, ?, ?)",
+      [uid, name || email, email]
+    );
+
+    console.log('User inserted with ID:', result.insertId);
+
+    // Create wallet for the user
+    const walletId = crypto.randomUUID();
+    console.log('Creating wallet with ID:', walletId);
+    await db.execute(
+      "INSERT INTO wallets (id, user_id, address, label) VALUES (?, ?, ?, ?)",
+      [walletId, result.insertId, wallet_address, wallet_label || 'Default Wallet']
+    );
+
+    console.log('Wallet created successfully');
+
+    res.status(201).json({
+      id: result.insertId,
+      email,
+      name: name || email
+    });
+  } catch (err) {
+    console.error('Firebase signup error:', err);
+    res.status(500).json({ error: "Database error: " + err.message });
+  }
+});
+
+// Get current user info (for Firebase auth)
+app.get("/api/auth/user", verifyFirebaseToken, async (req, res) => {
+  try {
+    const { uid } = req.firebaseUser;
+
+    const [users] = await db.execute(
+      "SELECT id, email, name FROM users WHERE firebase_uid = ?",
+      [uid]
+    );
+
+    if (users.length === 0) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    res.json(users[0]);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Database error" });
@@ -195,7 +260,7 @@ app.get("/api/conversations/:userId", async (req, res) => {
   try {
     const { userId } = req.params;
     console.log('Fetching conversations for user:', userId);
-    
+
     // Get conversations with user details
     const [conversations] = await db.execute(`
       SELECT 
@@ -248,7 +313,7 @@ app.get("/api/conversations/:userId", async (req, res) => {
 app.get("/api/conversations/:conversationId/messages", async (req, res) => {
   try {
     const { conversationId } = req.params;
-    
+
     const [messages] = await db.execute(`
       SELECT 
         m.id,
@@ -280,7 +345,7 @@ app.post("/api/conversations/:conversationId/messages", async (req, res) => {
     }
 
     const messageId = crypto.randomUUID();
-    
+
     await db.execute(
       "INSERT INTO messages (id, conversation_id, sender_id, content) VALUES (?, ?, ?, ?)",
       [messageId, conversationId, sender_id, content]
@@ -326,7 +391,7 @@ app.post("/api/conversations", async (req, res) => {
     }
 
     const conversationId = crypto.randomUUID();
-    
+
     await db.execute(
       "INSERT INTO conversations (id, recipient1, recipient2) VALUES (?, ?, ?)",
       [conversationId, recipient1, recipient2]
@@ -343,9 +408,9 @@ app.post("/api/conversations", async (req, res) => {
 // endpoint to get user wallets
 app.get("/api/users/:id/wallets", async (req, res) => {
   const { id } = req.params;
-  
+
   console.log('Fetching wallets for user ID:', id, 'type:', typeof id);
-  
+
   try {
     // Try both string and integer lookup
     const [rows] = await db.execute(
@@ -372,14 +437,14 @@ app.post("/api/users/:id/wallets", async (req, res) => {
 
   try {
     const walletId = crypto.randomUUID();
-    
+
     // Insert wallet
     await db.execute(
       "INSERT INTO wallets (id, user_id, label, address) VALUES (?, ?, ?, ?)",
       [walletId, id, label, address]
     );
 
-    res.status(201).json({ 
+    res.status(201).json({
       id: walletId,
       user_id: id,
       label,
@@ -416,7 +481,7 @@ app.delete("/api/users/:id/wallets/:walletId", async (req, res) => {
 // endpoint to get user notifications
 app.get("/api/users/:id/notifications", async (req, res) => {
   const { id } = req.params;
-  
+
   try {
     const [rows] = await db.execute(
       "SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 50",
@@ -457,14 +522,14 @@ app.post("/api/notifications", async (req, res) => {
 
   try {
     const notificationId = crypto.randomUUID();
-    
+
     // Insert notification
     await db.execute(
       "INSERT INTO notifications (id, user_id, message, type, `read`) VALUES (?, ?, ?, ?, 0)",
       [notificationId, user_id, message, type || 'job_claim']
     );
 
-    res.status(201).json({ 
+    res.status(201).json({
       id: notificationId,
       user_id,
       message,

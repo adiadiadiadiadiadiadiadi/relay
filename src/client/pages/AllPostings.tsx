@@ -23,7 +23,7 @@ interface Job {
 }
 
 const AllPostings: React.FC = () => {
-  const { currentUser } = useAuth();
+  const { currentUser, userData } = useAuth();
   const { userCurrency } = useCurrency();
   const navigate = useNavigate();
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -45,7 +45,7 @@ const AllPostings: React.FC = () => {
           let filteredJobs = data;
           if (currentUser) {
             filteredJobs = data.filter((job: Job) => 
-              job.employer_id !== currentUser.id.toString()
+              job.employer_id !== userData?.id.toString()
             );
           }
           
@@ -97,7 +97,7 @@ const AllPostings: React.FC = () => {
           },
           body: JSON.stringify({
             status: 'in_progress',
-            claimed_by: currentUser?.id
+            claimed_by: userData?.id
           })
         });
 
@@ -114,7 +114,7 @@ const AllPostings: React.FC = () => {
                 let filteredJobs = data;
                 if (currentUser) {
                   filteredJobs = data.filter((job: Job) => 
-                    job.employer_id !== currentUser.id.toString()
+                    job.employer_id !== userData?.id.toString()
                   );
                 }
                 
@@ -153,7 +153,7 @@ const AllPostings: React.FC = () => {
               let filteredJobs = data;
               if (currentUser) {
                 filteredJobs = data.filter((job: Job) => 
-                  job.employer_id !== currentUser.id.toString()
+                  job.employer_id !== userData?.id.toString()
                 );
               }
               
@@ -215,7 +215,7 @@ const AllPostings: React.FC = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          employer_id: currentUser?.id
+          employer_id: userData?.id
         })
       });
 
@@ -232,7 +232,7 @@ const AllPostings: React.FC = () => {
               let filteredJobs = data;
               if (currentUser) {
                 filteredJobs = data.filter((job: Job) => 
-                  job.employer_id !== currentUser.id.toString()
+                  job.employer_id !== userData?.id.toString()
                 );
               }
               
@@ -257,7 +257,7 @@ const AllPostings: React.FC = () => {
             let filteredJobs = data;
             if (currentUser) {
               filteredJobs = data.filter((job: Job) => 
-                job.employer_id !== currentUser.id.toString()
+                job.employer_id !== userData?.id.toString()
               );
             }
             
@@ -473,7 +473,7 @@ const AllPostings: React.FC = () => {
                 </Link>
                 
                 {/* Delete Button - Show for job owner on open jobs */}
-                {job.status === 'open' && String(job.employer_id) === String(currentUser?.id) && (
+                {job.status === 'open' && String(job.employer_id) === String(userData?.id) && (
                   <button
                     onClick={(e) => handleDeleteClick(e, job)}
                     style={{
@@ -503,7 +503,7 @@ const AllPostings: React.FC = () => {
                 )}
 
                 {/* Claim Button - Only show for open jobs that aren't yours */}
-                {job.status === 'open' && String(job.employer_id) !== String(currentUser?.id) && (
+                {job.status === 'open' && String(job.employer_id) !== String(userData?.id) && (
                   <button
                     onClick={(e) => handleClaimClick(e, job)}
                     style={{

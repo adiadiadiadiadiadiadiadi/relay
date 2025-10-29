@@ -25,7 +25,7 @@ const ConfirmationAlert: React.FC<ConfirmationAlertProps> = ({
   jobTitle,
   jobPrice
 }) => {
-  const { currentUser } = useAuth();
+  const { currentUser, userData } = useAuth();
   const { showToast } = useToast();
   const [step, setStep] = useState<'confirm' | 'wallet' | 'success'>('confirm');
   const [wallets, setWallets] = useState<Wallet[]>([]);
@@ -59,7 +59,7 @@ const ConfirmationAlert: React.FC<ConfirmationAlertProps> = ({
     
     try {
       setLoadingWallets(true);
-      const response = await fetch(`http://localhost:3002/api/users/${currentUser.id}/wallets`);
+      const response = await fetch(`http://localhost:3002/api/users/${userData?.id}/wallets`);
       if (response.ok) {
         const data = await response.json();
         setWallets(data);

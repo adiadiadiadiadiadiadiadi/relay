@@ -50,3 +50,4 @@ Copy the returned contract ID and add it to your `.env` file as `REVIEWS_CONTRAC
 - `get_rating_breakdown(user)` - Get distribution of ratings
 - `has_reviewed_job(job_id, reviewer)` - Check if job was reviewed
 
+

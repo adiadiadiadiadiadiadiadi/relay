@@ -33,7 +33,7 @@ interface Job {
 }
 
 const EmployerDashboard: React.FC = () => {
-  const { currentUser } = useAuth();
+  const { currentUser, userData } = useAuth();
   const { userCurrency } = useCurrency();
   const { showToast } = useToast();
   const navigate = useNavigate();
@@ -75,16 +75,16 @@ const EmployerDashboard: React.FC = () => {
   };
 
   useEffect(() => {
-    if (userId && userId !== currentUser?.id) {
+    if (userId && userId !== userData?.id) {
       // If viewing someone else's dashboard, fetch their jobs and details
       fetchJobs(userId);
       fetchUserDetails(userId);
       fetchUserRatings(userId);
-    } else if (currentUser) {
+    } else if (userData?.id) {
       // Viewing own dashboard
-      fetchJobs(currentUser.id);
+      fetchJobs(userData.id);
       setViewedUser(null); // Reset to use currentUser
-      fetchUserRatings(currentUser.id);
+      fetchUserRatings(userData.id);
     }
   }, [userId, currentUser]);
   
@@ -107,11 +107,11 @@ const EmployerDashboard: React.FC = () => {
 
   // Fetch wallets when viewing own dashboard
   const fetchWallets = useCallback(async () => {
-    if (!currentUser || (userId && userId !== currentUser.id)) return;
+    if (!userData || (userId && userId !== userData.id)) return;
     
     try {
       setLoadingWallets(true);
-      const response = await fetch(`http://localhost:3002/api/users/${currentUser.id}/wallets`);
+      const response = await fetch(`http://localhost:3002/api/users/${userData?.id}/wallets`);
       if (response.ok) {
         const data = await response.json();
         setWallets(data);
@@ -142,7 +142,7 @@ const EmployerDashboard: React.FC = () => {
     if (!walletToDelete) return;
 
     try {
-      const response = await fetch(`http://localhost:3002/api/users/${currentUser?.id}/wallets/${walletToDelete.id}`, {
+      const response = await fetch(`http://localhost:3002/api/users/${userData?.id}/wallets/${walletToDelete.id}`, {
         method: 'DELETE'
       });
       
@@ -175,7 +175,7 @@ const EmployerDashboard: React.FC = () => {
       // Fetch user's reviews
       if (currentUser) {
         try {
-          const reviewsResponse = await fetch(`http://localhost:3002/api/users/${currentUser.id}/reviews`);
+          const reviewsResponse = await fetch(`http://localhost:3002/api/users/${userData?.id}/reviews`);
           if (reviewsResponse.ok) {
             const reviews = await reviewsResponse.json();
             // Check if reviews is an array
@@ -201,7 +201,7 @@ const EmployerDashboard: React.FC = () => {
   // Categorize jobs based on user's role
   // If viewing own dashboard: show owned jobs (they posted) vs jobs they're working on
   // If viewing someone else's dashboard: show the same (their owned jobs vs jobs they're working on)
-  const targetUserId = userId || currentUser?.id;
+  const targetUserId = userId || userData?.id;
   
   const ownedJobs = jobs.filter(job => 
     job.employer_id === targetUserId && job.status !== 'completed' && job.status !== 'cancelled'
@@ -239,7 +239,7 @@ const EmployerDashboard: React.FC = () => {
           },
           body: JSON.stringify({
             status: 'in_progress',
-            claimed_by: currentUser?.id
+            claimed_by: userData?.id
           })
         });
 
@@ -344,7 +344,7 @@ const EmployerDashboard: React.FC = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          reviewer_id: currentUser?.id,
+          reviewer_id: userData?.id,
           rating: rating,
           comment: ''
         })
@@ -412,19 +412,19 @@ const EmployerDashboard: React.FC = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          employer_id: currentUser?.id
+          employer_id: userData?.id
         })
       });
 
       if (!response.ok) {
         console.error('Failed to delete job');
         // If failed, refetch to restore state
-        fetchJobs(currentUser?.id || '');
+        fetchJobs(userData?.id || '');
       }
     } catch (error) {
       console.error('Error deleting job:', error);
       // Refetch on error
-      fetchJobs(currentUser?.id || '');
+      fetchJobs(userData?.id || '');
     }
   };
 
@@ -500,7 +500,7 @@ const EmployerDashboard: React.FC = () => {
     {job.status === 'open' && (
       <>
         {/* Delete Button - Show for job owner when viewing own dashboard */}
-        {(!userId || userId === currentUser?.id) && String(job.employer_id) === String(currentUser?.id) ? (
+        {(!userId || userId === userData?.id) && String(job.employer_id) === String(userData?.id) ? (
           <button
             onClick={(e) => handleDeleteClick(e, job)}
             style={{
@@ -529,7 +529,7 @@ const EmployerDashboard: React.FC = () => {
           </button>
         ) : (
           /* Claim Button - Show for jobs that aren't yours */
-          String(job.employer_id) !== String(currentUser?.id) && (
+          String(job.employer_id) !== String(userData?.id) && (
             <button
               onClick={(e) => handleClaimClick(job, e)}
               style={{
@@ -605,7 +605,7 @@ const EmployerDashboard: React.FC = () => {
               margin: '0 0 0.5rem 0',
               textTransform: 'lowercase'
             }}>
-              {(viewedUser ? viewedUser.name : currentUser?.name) || 
+              {(viewedUser ? viewedUser.name : userData?.name) || 
                (viewedUser ? viewedUser.email : currentUser?.email)?.split('@')[0]}
             </h1>
             <p style={{ 
@@ -743,7 +743,7 @@ const EmployerDashboard: React.FC = () => {
             </div>
 
             {/* Wallets Display - Only show for current user */}
-            {(!userId || userId === currentUser?.id) && (
+            {(!userId || userId === userData?.id) && (
               <div style={{
                 backgroundColor: '#111111',
                 border: '1px solid #333333',
@@ -1037,9 +1037,9 @@ const EmployerDashboard: React.FC = () => {
                                     e.preventDefault();
                                     e.stopPropagation();
                                     console.log('=== Review button clicked ===');
-                                    console.log('Current user ID:', currentUser?.id);
+                                    console.log('Current user ID:', userData?.id);
                                     console.log('Job employer ID:', job.employer_id);
-                                    const targetRole = job.employer_id === String(currentUser?.id) ? 'employee' : 'employer';
+                                    const targetRole = job.employer_id === String(userData?.id) ? 'employee' : 'employer';
                                     console.log('Calculated target role:', targetRole);
                                     console.log('Job:', job);
                                     handleLeaveReview(job, targetRole);

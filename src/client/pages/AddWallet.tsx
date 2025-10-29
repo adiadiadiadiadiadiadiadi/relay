@@ -4,7 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import Header from '../components/Header';
 
 const AddWallet: React.FC = () => {
-  const { currentUser } = useAuth();
+  const { currentUser, userData } = useAuth();
   const navigate = useNavigate();
   const [label, setLabel] = useState('');
   const [address, setAddress] = useState('');
@@ -18,7 +18,7 @@ const AddWallet: React.FC = () => {
       return setError('All fields are required');
     }
 
-    if (!currentUser) {
+    if (!userData) {
       return setError('You must be logged in to add a wallet');
     }
 
@@ -26,7 +26,7 @@ const AddWallet: React.FC = () => {
       setError('');
       setLoading(true);
       
-      const response = await fetch(`http://localhost:3002/api/users/${currentUser.id}/wallets`, {
+      const response = await fetch(`http://localhost:3002/api/users/${userData.id}/wallets`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -40,7 +40,7 @@ const AddWallet: React.FC = () => {
       }
 
       // Navigate back to profile
-      navigate(`/employer/${currentUser.id}`);
+      navigate(`/employer/${userData.id}`);
     } catch (error: any) {
       setError(error.message || 'Failed to add wallet');
     } finally {
@@ -164,7 +164,7 @@ const AddWallet: React.FC = () => {
               </button>
               
               <Link
-                to={currentUser ? `/employer/${currentUser.id}` : '/'}
+                to={userData ? `/employer/${userData.id}` : '/'}
                 style={{
                   flex: 1,
                   backgroundColor: '#333333',

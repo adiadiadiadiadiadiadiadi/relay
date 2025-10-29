@@ -27,7 +27,7 @@ interface Conversation {
 const Messages: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { currentUser } = useAuth();
+  const { currentUser, userData } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [selectedConversation, setSelectedConversation] = useState<string>('');
   const [showNewMessage, setShowNewMessage] = useState(false);
@@ -52,7 +52,7 @@ const Messages: React.FC = () => {
     if (!currentUser?.id) return;
     
     try {
-      const response = await fetch(`http://localhost:3002/api/conversations/${currentUser.id}`);
+      const response = await fetch(`http://localhost:3002/api/conversations/${userData?.id}`);
       if (response.ok) {
         const data = await response.json();
         setConversations(data);
@@ -100,7 +100,7 @@ const Messages: React.FC = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          sender_id: currentUser.id,
+          sender_id: userData?.id,
           content: content
         })
       });
@@ -197,7 +197,7 @@ const Messages: React.FC = () => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            recipient1: currentUser.id,
+            recipient1: userData?.id,
             recipient2: user.id
           })
         });
@@ -221,7 +221,7 @@ const Messages: React.FC = () => {
 
   const handleViewProfile = (contactId: number, recipient1: number, recipient2: number) => {
     // Determine which user is NOT the current user
-    const currentUserIdStr = currentUser?.id ? currentUser.id.toString() : '';
+    const currentUserIdStr = currentUser?.id ? userData?.id.toString() : '';
     
     // Find the recipient that is NOT the current user
     const recipient1Str = recipient1.toString();

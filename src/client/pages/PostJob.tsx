@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 
 const PostJob: React.FC = () => {
-  const { currentUser } = useAuth();
+  const { currentUser, userData } = useAuth();
   const { userCurrency, setUserCurrency } = useCurrency();
   const { showToast } = useToast();
   const navigate = useNavigate();
@@ -33,12 +33,12 @@ const PostJob: React.FC = () => {
   }, [userCurrency]);
 
   const fetchWallets = useCallback(async () => {
-    if (!currentUser) return;
+    if (!userData) return;
     
     try {
       setLoadingWallets(true);
-      console.log('Fetching wallets for user:', currentUser.id);
-      const response = await fetch(`http://localhost:3002/api/users/${currentUser.id}/wallets`);
+      console.log('Fetching wallets for user:', userData?.id);
+      const response = await fetch(`http://localhost:3002/api/users/${userData?.id}/wallets`);
       console.log('Wallets response status:', response.status);
       if (response.ok) {
         const data = await response.json();
@@ -119,13 +119,13 @@ const PostJob: React.FC = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          employer_id: currentUser.id,
+          employer_id: userData?.id,
           title,
           description,
           price: budget,
           currency,
           tags: selectedTags,
-          name: currentUser.name || currentUser.email
+          name: userData?.name || currentUser?.email
         }),
       });
 
@@ -141,7 +141,7 @@ const PostJob: React.FC = () => {
       showToast('Job posted successfully!', 'success');
       
       // Redirect to employer dashboard
-      navigate(`/employer/${currentUser.id}`);
+      navigate(`/employer/${userData?.id}`);
       
     } catch (error: any) {
       console.error('Error posting job:', error);

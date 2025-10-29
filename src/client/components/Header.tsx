@@ -6,7 +6,7 @@ import { Currency } from '../utils/currencyConversion';
 import Logo from './Logo';
 
 const Header: React.FC = () => {
-  const { currentUser, logout } = useAuth();
+  const { currentUser, userData, logout } = useAuth();
   const { userCurrency, setUserCurrency } = useCurrency();
   const navigate = useNavigate();
   const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false);
@@ -28,16 +28,16 @@ const Header: React.FC = () => {
 
   // Fetch notifications
   useEffect(() => {
-    if (currentUser) {
+    if (userData) {
       fetchNotifications();
     }
-  }, [currentUser]);
+  }, [userData]);
 
   const fetchNotifications = async () => {
-    if (!currentUser) return;
+    if (!userData) return;
     
     try {
-      const response = await fetch(`http://localhost:3002/api/users/${currentUser.id}/notifications`);
+      const response = await fetch(`http://localhost:3002/api/users/${userData.id}/notifications`);
       if (response.ok) {
         const data = await response.json();
         setNotifications(data);
@@ -84,7 +84,9 @@ const Header: React.FC = () => {
 
   const handleViewProfile = () => {
     setShowUserDropdown(false);
-    navigate(`/employer/${currentUser?.id}`);
+    if (userData) {
+      navigate(`/employer/${userData.id}`);
+    }
   };
 
   const handleUserDropdownToggle = () => {
@@ -105,10 +107,10 @@ const Header: React.FC = () => {
   };
 
   const markNotificationsAsRead = async () => {
-    if (!currentUser) return;
+    if (!userData) return;
     
     try {
-      const response = await fetch(`http://localhost:3002/api/users/${currentUser.id}/notifications/read`, {
+      const response = await fetch(`http://localhost:3002/api/users/${userData.id}/notifications/read`, {
         method: 'PUT'
       });
       

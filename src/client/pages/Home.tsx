@@ -22,7 +22,7 @@ interface Job {
 }
 
 const Home: React.FC = () => {
-  const { currentUser } = useAuth();
+  const { currentUser, userData } = useAuth();
   const { userCurrency } = useCurrency();
   const navigate = useNavigate();
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -41,9 +41,9 @@ const Home: React.FC = () => {
       
       // If user is logged in, filter out their own jobs
       let filteredJobs = data;
-      if (currentUser) {
+      if (userData) {
         filteredJobs = data.filter((job: Job) => 
-          job.employer_id !== currentUser.id.toString()
+          job.employer_id !== userData.id.toString()
         );
       }
       // Show all jobs regardless of status (posted jobs)
@@ -92,7 +92,7 @@ const Home: React.FC = () => {
           },
           body: JSON.stringify({
             status: 'in_progress',
-            claimed_by: currentUser?.id,
+            claimed_by: userData?.id,
             wallet_address: selectedWallet?.address
           })
         });

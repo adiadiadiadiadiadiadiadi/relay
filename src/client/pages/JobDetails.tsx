@@ -27,7 +27,7 @@ interface Job {
 
 const JobDetails: React.FC = () => {
   const { jobId } = useParams<{ jobId: string }>();
-  const { currentUser } = useAuth();
+  const { currentUser, userData } = useAuth();
   const { userCurrency } = useCurrency();
   const { showToast } = useToast();
   const navigate = useNavigate();
@@ -275,8 +275,8 @@ const JobDetails: React.FC = () => {
     if (!job || job.status !== 'completed' || !currentUser) return;
 
     // Check if user should review
-    const isEmployer = String(job.employer_id) === String(currentUser.id);
-    const isEmployee = job.employee_id && String(job.employee_id) === String(currentUser.id);
+    const isEmployer = String(job.employer_id) === String(userData?.id);
+    const isEmployee = job.employee_id && String(job.employee_id) === String(userData?.id);
 
     if (isEmployee && job.employer_name && !showReviewModal) {
       // Employee reviews employer
@@ -407,8 +407,8 @@ const JobDetails: React.FC = () => {
 
   // Check if user has access to view this job
   // If job is not 'open', only employer or employee can view it
-  const isEmployer = currentUser?.id && job.employer_id === currentUser.id.toString();
-  const isEmployee = currentUser?.id && job.employee_id?.toString() === currentUser.id.toString();
+  const isEmployer = currentUser?.id && job.employer_id === userData?.id.toString();
+  const isEmployee = currentUser?.id && job.employee_id?.toString() === userData?.id.toString();
   const hasAccess = job.status === 'open' || isEmployer || isEmployee;
 
   console.log('=== ACCESS CHECK ===');
